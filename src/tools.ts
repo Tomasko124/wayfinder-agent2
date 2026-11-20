@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { dateRange, nightsBetween } from './dates.js';
+import { dateRange, nightsBetween, dateSchema } from './dates.js';
 import { activitiesFor, cities, flights, lodgings } from './data.js';
 import { ItinerarySchema, type Itinerary, type ToolResult } from './types.js';
 
 type Spec = { name: string; description: string; schema: z.ZodType; run: (input: any) => unknown };
-const dayInput = { destination: z.string(), startDate: z.string(), endDate: z.string() };
+const dayInput = { destination: z.string(), startDate: dateSchema, endDate: dateSchema };
 export function createToolbox() {
   const plans = new Map<string, Itinerary>();
   let planCounter = 0;
