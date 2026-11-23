@@ -69,6 +69,8 @@ The CLI prints a short progress line for each trace event, then the complete res
 
 Requests are validated before any LLM call. Tool errors are returned to the model as tool results, allowing it to correct bad arguments, relax constraints, or select cheaper options. Budget errors include an estimate, overage, breakdown, and minimum possible estimate. The loop is bounded to 12 iterations by default; plain-text-only replies receive two nudges before returning `no_terminal_tool`. The agent finishes with either `submit_itinerary` or `ask_clarification` when the model uses a terminal tool.
 
+The budget (600 EUR) is below the cost of the cheapest balanced-pace plan (616 EUR), so the first plan is over budget and the agent has to replan or ask a clarifying question.
+
 ## Traces
 
 `npm run traces` calls the configured Anthropic model for the four examples and writes paired JSON and Markdown files under `traces/`. It validates the expected run outcomes and error/replanning sequence. Trace files are generated from real model runs, not edited by hand; an API key is required.
