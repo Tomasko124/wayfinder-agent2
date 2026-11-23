@@ -1,26 +1,147 @@
 import { z } from 'zod';
-import { dateRange, nightsBetween, dateSchema } from './dates.js';
-import { activitiesFor, cities, flights, lodgings } from './data.js';
+import { dateRange, dateSchema, nightsBetween } from './dates.js';
+import { activitiesFor, cities, flights, lodgings, resolveCity, supportedCities, weatherForDates, type Activity } from './data.js';
 import { ItinerarySchema, type Itinerary, type ToolResult } from './types.js';
 
-type Spec = { name: string; description: string; schema: z.ZodType; run: (input: any) => unknown };
-const dayInput = { destination: z.string(), startDate: dateSchema, endDate: dateSchema };
+type ToolSpec = { name: string; description: string; schema: z.ZodType; run: (input: any) => unknown };
+const dateFields = { startDate: dateSchema, endDate: dateSchema };
+const datePeriod = z.object(dateFields).superRefine(({ startDate, endDate }, ctx) => {
+  if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
+});
+const supportedMessage = () => `Unsupported destination. Supported cities: ${supportedCities.join(', ')}.`;
+const unsupported = (): never => { throw Object.assign(new Error(supportedMessage()), { errorType: 'no_results', details: { supportedCities } }); };
+const interestsScore = (tags: string[], interests: string[]) => tags.reduce((score, tag) => score + (interests.some((interest) => tag.toLowerCase().includes(interest.toLowerCase()) || interest.toLowerCase().includes(tag.toLowerCase())) ? 1 : 0), 0);
+
 export function createToolbox() {
   const plans = new Map<string, Itinerary>();
   let planCounter = 0;
-  const specs: Spec[] = [
-    { name: 'weather_lookup', description: 'Get deterministic per-day weather forecast.', schema: z.object(dayInput), run: ({ destination, startDate, endDate }) => { const city = cities[destination as keyof typeof cities]; if (!city) throw new Error('Unsupported destination'); return dateRange(startDate, endDate).map((date, i) => { const rainChance = (i * 29 + destination.length * 7) % 80; return { date, condition: city.weather[i % city.weather.length], high: 17 + (i % 7), low: 10 + (i % 4), rainChance, rainy: rainChance >= 50 }; }); } },
-    { name: 'flight_price_lookup', description: 'Find flight options, optionally capped at maxPrice.', schema: z.object({ origin: z.string().optional(), destination: z.string(), startDate: z.string(), endDate: z.string(), maxPrice: z.number().positive().optional() }), run: ({ maxPrice }) => { const found = flights.filter((f) => !maxPrice || f.price <= maxPrice); if (!found.length) throw Object.assign(new Error(`No flights under cap; cheapest available price is €${flights[0].price}.`), { errorType: 'no_results', details: { cheapest: flights[0].price } }); return found; } },
-    { name: 'lodging_lookup', description: 'Find lodging by destination and optional nightly cap.', schema: z.object({ ...dayInput, maxNightlyRate: z.number().positive().optional() }), run: ({ destination, startDate, endDate, maxNightlyRate }) => { const options = lodgings[destination as keyof typeof lodgings]; if (!options) throw Object.assign(new Error(`No lodging catalog for ${destination}.`), { errorType: 'no_results' }); const nights = nightsBetween(startDate, endDate); const found = options.filter((x) => !maxNightlyRate || x.nightlyRate <= maxNightlyRate).map((x) => ({ ...x, nights, total: x.nightlyRate * nights })); if (!found.length) throw Object.assign(new Error('No lodging under that nightly cap.'), { errorType: 'no_results' }); return found; } },
-    { name: 'attractions_lookup', description: 'Search activity options ranked by interest match.', schema: z.object({ destination: z.string(), interests: z.array(z.string()).default([]), dietary: z.string().default('none'), pace: z.enum(['slow','balanced','full']).optional(), indoorOnly: z.boolean().optional() }), run: ({ destination, interests, dietary, indoorOnly }) => { if (!(destination in cities)) throw Object.assign(new Error(`Unsupported destination: ${destination}`), { errorType: 'no_results' }); return activitiesFor(destination as keyof typeof cities).filter((a) => !indoorOnly || a.indoor).map((a) => ({ ...a, dietFriendly: a.category === 'food' ? [dietary === 'none' ? 'all' : dietary] : a.dietFriendly, dietSuitable: a.category !== 'food' || dietary === 'none' || a.dietFriendly.includes(dietary) })).sort((a, b) => Number(b.tags.some((tag) => interests.some((interest: string) => tag.includes(interest.toLowerCase())))) - Number(a.tags.some((tag) => interests.some((interest: string) => tag.includes(interest.toLowerCase()))))); } },
-    { name: 'calendar_day_planner', description: 'Build budget-checked itinerary and store it behind an opaque planId.', schema: z.object({ ...dayInput, budget: z.number().positive(), pace: z.enum(['slow','balanced','full']), interests: z.array(z.string()), dietary: z.string(), flightId: z.string(), lodgingId: z.string(), activityIds: z.array(z.string()).optional() }), run: (input) => { const city = cities[input.destination as keyof typeof cities]; if (!city) throw Object.assign(new Error('Unsupported destination'), { errorType: 'no_results' }); const flight = flights.find((f) => f.id === input.flightId); const lodge = lodgings[input.destination as keyof typeof lodgings].find((l) => l.id === input.lodgingId); if (!flight || !lodge) throw Object.assign(new Error('Unknown flightId or lodgingId'), { errorType: 'bad_input' }); const all = activitiesFor(input.destination as keyof typeof cities); const pool = input.activityIds?.length ? input.activityIds.map((id: string) => all.find((a) => a.id === id)).filter(Boolean) : all; if (!pool.length) throw Object.assign(new Error('No activities found'), { errorType: 'no_results' }); const dates = dateRange(input.startDate, input.endDate); const perDay = input.pace === 'slow' ? 2 : input.pace === 'balanced' ? 3 : 4; const used = new Set<string>(); let activitiesTotal = 0; const days = dates.map((date, index) => { const rainChance = (index * 29 + input.destination.length * 7) % 80; const rainy = rainChance >= 50; const candidates = pool.filter((a: any) => !used.has(a.id) && (!rainy || a.indoor) && (a.category !== 'food' || input.dietary === 'none' || a.dietFriendly.includes(input.dietary))); const items = []; for (let slot = 0; slot < perDay; slot++) { let activity = candidates.shift(); if (!activity) activity = pool.find((a: any) => !used.has(a.id) && (a.category !== 'food' || input.dietary === 'none' || a.dietFriendly.includes(input.dietary))); if (activity) { used.add(activity.id); activitiesTotal += activity.cost; items.push({ slot: ['morning','afternoon','evening','late'][slot], activityId: activity.id, name: activity.name, category: activity.category, cost: activity.cost, durationHours: activity.durationHours, indoor: activity.indoor, note: rainy && activity.indoor ? 'Indoor option selected for rainy forecast.' : 'Matched to your trip preferences.' }); } else items.push({ slot: ['morning','afternoon','evening','late'][slot], activityId: 'free-time', name: 'Free time', category: 'free_time', cost: 0, durationHours: 0, indoor: true, note: 'Activity pool exhausted; enjoy unstructured time.' }); } return { date, weather: { condition: city.weather[index % city.weather.length], high: 17 + (index % 7), low: 10 + (index % 4), rainChance, rainy }, items, dayCost: items.reduce((sum, item) => sum + item.cost, 0) + city.allowance }; }); const lodgingTotal = lodge.nightlyRate * nightsBetween(input.startDate, input.endDate); const localAllowance = city.allowance * dates.length; const estimated = flight.price + lodgingTotal + activitiesTotal + localAllowance; if (estimated > input.budget) throw Object.assign(new Error(`Estimated €${estimated} exceeds budget €${input.budget}.`), { errorType: 'over_budget', details: { estimated, budget: input.budget, overage: estimated - input.budget, breakdown: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance }, minimumPossible: flights[0].price + (lodgings[input.destination as keyof typeof lodgings][0].nightlyRate * nightsBetween(input.startDate, input.endDate)) + localAllowance } }); const plan = ItinerarySchema.parse({ destination: input.destination, startDate: input.startDate, endDate: input.endDate, currency: 'EUR', flight: { id: flight.id, airline: flight.airline, price: flight.price }, lodging: { id: lodge.id, name: lodge.name, neighborhood: lodge.neighborhood, nightlyRate: lodge.nightlyRate, nights: nightsBetween(input.startDate, input.endDate), total: lodgingTotal }, days, totals: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance, estimated, budget: input.budget, remaining: input.budget - estimated }, notes: [], summary: '', tips: [] }); const planId = `plan-${++planCounter}`; plans.set(planId, plan); return { planId, preview: { destination: plan.destination, estimated, budget: input.budget } }; } },
+  const specs: ToolSpec[] = [
+    {
+      name: 'weather_lookup', description: 'Get deterministic per-day weather forecast.',
+      schema: z.object({ destination: z.string(), ...dateFields }).superRefine(({ startDate, endDate }, ctx) => {
+        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
+      }),
+      run: ({ destination, startDate, endDate }) => {
+        if (!resolveCity(destination)) return unsupported();
+        dateRange(startDate, endDate);
+        return weatherForDates(destination, startDate, endDate);
+      },
+    },
+    {
+      name: 'flight_price_lookup', description: 'Find destination-specific flight options, optionally capped at maxPrice.',
+      schema: z.object({ origin: z.string().optional(), destination: z.string(), ...dateFields, maxPrice: z.number().positive().optional() }).superRefine(({ startDate, endDate }, ctx) => {
+        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
+      }),
+      run: ({ destination, maxPrice }) => {
+        const city = resolveCity(destination);
+        if (!city) return unsupported();
+        const options = flights[city].filter((flight) => maxPrice === undefined || flight.price <= maxPrice);
+        if (!options.length) throw Object.assign(new Error(`No flights under cap; cheapest available price is €${flights[city][0].price}.`), { errorType: 'no_results', details: { cheapest: flights[city][0].price } });
+        return options;
+      },
+    },
+    {
+      name: 'lodging_lookup', description: 'Find lodging by destination and optional nightly cap.',
+      schema: z.object({ destination: z.string(), ...dateFields, maxNightlyRate: z.number().positive().optional() }).superRefine(({ startDate, endDate }, ctx) => {
+        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
+      }),
+      run: ({ destination, startDate, endDate, maxNightlyRate }) => {
+        const city = resolveCity(destination);
+        if (!city) return unsupported();
+        const nights = nightsBetween(startDate, endDate);
+        const options = lodgings[city].filter((item) => maxNightlyRate === undefined || item.nightlyRate <= maxNightlyRate).map((item) => ({ ...item, nights, total: item.nightlyRate * nights }));
+        if (!options.length) throw Object.assign(new Error('No lodging under that nightly cap.'), { errorType: 'no_results' });
+        return options;
+      },
+    },
+    {
+      name: 'attractions_lookup', description: 'Search activities ranked by interests and dietary suitability.',
+      schema: z.object({ destination: z.string(), interests: z.array(z.string()).default([]), dietary: z.string().default('none'), pace: z.enum(['slow', 'balanced', 'full']).optional(), indoorOnly: z.boolean().optional() }),
+      run: ({ destination, interests, dietary, indoorOnly }) => {
+        const city = resolveCity(destination);
+        if (!city) return unsupported();
+        return activitiesFor(city).filter((activity) => !indoorOnly || activity.indoor).filter((activity) => activity.category !== 'food' || dietary === 'none' || activity.diets.includes(dietary.toLowerCase())).map((activity) => ({ ...activity, interestScore: interestsScore(activity.tags, interests) })).sort((a, b) => b.interestScore - a.interestScore);
+      },
+    },
+    {
+      name: 'calendar_day_planner', description: 'Build a preference-aware, budget-checked itinerary and store it behind an opaque planId.',
+      schema: z.object({ destination: z.string(), ...dateFields, budget: z.number().positive(), pace: z.enum(['slow', 'balanced', 'full']), interests: z.array(z.string()), dietary: z.string(), flightId: z.string(), lodgingId: z.string(), activityIds: z.array(z.string()).optional() }).superRefine(({ startDate, endDate }, ctx) => {
+        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
+      }),
+      run: (input) => {
+        const cityName = resolveCity(input.destination);
+        if (!cityName) return unsupported();
+        const flight = flights[cityName].find((option) => option.id === input.flightId);
+        const lodge = lodgings[cityName].find((option) => option.id === input.lodgingId);
+        if (!flight) throw Object.assign(new Error(`Unknown flightId for ${cityName}.`), { errorType: 'bad_input' });
+        if (!lodge) throw Object.assign(new Error(`Unknown lodgingId for ${cityName}.`), { errorType: 'bad_input' });
+        const dates = dateRange(input.startDate, input.endDate);
+        const weather = weatherForDates(cityName, input.startDate, input.endDate)!;
+        const allActivities = activitiesFor(cityName);
+        if (input.activityIds && input.activityIds.some((id: string) => !allActivities.some((activity) => activity.id === id))) throw Object.assign(new Error('Unknown activityId.'), { errorType: 'bad_input' });
+        const pool: Activity[] = input.activityIds ? input.activityIds.map((id: string) => allActivities.find((activity) => activity.id === id)!) : allActivities;
+        const paceCount = input.pace === 'slow' ? 2 : input.pace === 'balanced' ? 3 : 4;
+        const used = new Set<string>();
+        let activitiesTotal = 0;
+        const days = dates.map((date, dayIndex) => {
+          const forecast = weather[dayIndex];
+          const slots = ['morning', 'afternoon', 'evening', 'late'];
+          const items: Itinerary['days'][number]['items'] = [];
+          let foodStops = 0;
+          for (const slot of slots.slice(0, paceCount)) {
+            const candidates = pool.filter((activity) => !used.has(activity.id) && (activity.category !== 'food' || foodStops === 0) && (activity.category !== 'food' || input.dietary.toLowerCase() === 'none' || activity.diets.includes(input.dietary.toLowerCase()))).sort((a, b) => {
+              const score = (activity: typeof a) => interestsScore(activity.tags, input.interests) * 10 + Number(activity.bestTime.toLowerCase() === slot) * 5 + Number(forecast.rainy && activity.indoor) * 3;
+              return score(b) - score(a);
+            });
+            const activity = candidates[0];
+            if (!activity) {
+              items.push({ slot, activityId: 'free-time', name: 'Free time', category: 'free_time', cost: 0, durationHours: 0, indoor: forecast.rainy, note: 'Activity pool exhausted; unstructured time has no activity cost.' });
+              continue;
+            }
+            used.add(activity.id);
+            if (activity.category === 'food') foodStops++;
+            activitiesTotal += activity.cost;
+            items.push({ slot, activityId: activity.id, name: activity.name, category: activity.category, cost: activity.cost, durationHours: activity.durationHours, indoor: activity.indoor, note: `${activity.bestTime === slot ? 'Best time of day.' : 'Flexible timing.'}${forecast.rainy && activity.indoor ? ' Indoor choice for rainy weather.' : ''}` });
+          }
+          return { date, weather: forecast, items, dayCost: items.reduce((sum, item) => sum + item.cost, 0) + cities[cityName].allowance };
+        });
+        const nights = nightsBetween(input.startDate, input.endDate);
+        const lodgingTotal = lodge.nightlyRate * nights;
+        const localAllowance = cities[cityName].allowance * dates.length;
+        const estimated = flight.price + lodgingTotal + activitiesTotal + localAllowance;
+        if (estimated > input.budget) {
+          const minimumPossible = flights[cityName][0].price + lodgings[cityName][0].nightlyRate * nights + localAllowance;
+          throw Object.assign(new Error(`Estimated €${estimated} exceeds budget €${input.budget}.`), { errorType: 'over_budget', details: { estimated, budget: input.budget, overage: estimated - input.budget, breakdown: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance }, minimumPossible } });
+        }
+        const plan = ItinerarySchema.parse({
+          destination: cityName, startDate: input.startDate, endDate: input.endDate, currency: 'EUR',
+          flight: { id: flight.id, airline: flight.airline, price: flight.price },
+          lodging: { id: lodge.id, name: lodge.name, neighborhood: lodge.neighborhood, nightlyRate: lodge.nightlyRate, nights, total: lodgingTotal },
+          days, totals: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance, estimated, budget: input.budget, remaining: input.budget - estimated },
+          notes: ['One traveller; all estimates are in EUR.', 'Free-time items cost €0 and are excluded from activity spend.', 'Activity times are suggested slots; arrival and departure times are not modeled.'], summary: '', tips: [],
+        });
+        const planId = `plan-${++planCounter}`;
+        plans.set(planId, plan);
+        return { planId, preview: { destination: cityName, estimated, budget: input.budget } };
+      },
+    },
     { name: 'ask_clarification', description: 'Finish by asking one concise clarifying question.', schema: z.object({ question: z.string().min(1) }), run: ({ question }) => ({ question }) },
     { name: 'submit_itinerary', description: 'Finish using a stored planId; prices and totals remain authoritative.', schema: z.object({ planId: z.string(), summary: z.string(), tips: z.array(z.string()) }), run: ({ planId, summary, tips }) => { const plan = plans.get(planId); if (!plan) throw Object.assign(new Error('Unknown planId'), { errorType: 'bad_input' }); return ItinerarySchema.parse({ ...plan, summary, tips }); } },
   ];
   return {
     specs,
     definitions: specs.map(({ name, description, schema }) => ({ name, description, input_schema: z.toJSONSchema(schema) })),
-    async execute(name: string, input: unknown): Promise<ToolResult> { const spec = specs.find((item) => item.name === name); if (!spec) return { status: 'error', errorType: 'bad_input', message: `Unknown tool: ${name}` }; const parsed = spec.schema.safeParse(input); if (!parsed.success) return { status: 'error', errorType: 'bad_input', message: parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ') }; try { return { status: 'success', data: await spec.run(parsed.data) }; } catch (error) { const issue = error as Error & { errorType?: 'bad_input'|'no_results'|'over_budget'|'internal'; details?: unknown }; return { status: 'error', errorType: issue.errorType ?? 'internal', message: issue.message || 'Tool failed', ...(issue.details ? { details: issue.details } : {}) }; } },
+    async execute(name: string, input: unknown): Promise<ToolResult> {
+      const spec = specs.find((item) => item.name === name);
+      if (!spec) return { status: 'error', errorType: 'bad_input', message: `Unknown tool: ${name}` };
+      const parsed = spec.schema.safeParse(input);
+      if (!parsed.success) return { status: 'error', errorType: 'bad_input', message: parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ') };
+      try { return { status: 'success', data: await spec.run(parsed.data) }; }
+      catch (error) {
+        const issue = error as Error & { errorType?: 'bad_input' | 'no_results' | 'over_budget' | 'internal'; details?: unknown };
+        return { status: 'error', errorType: issue.errorType ?? 'internal', message: issue.message || 'Tool failed', ...(issue.details ? { details: issue.details } : {}) };
+      }
+    },
   };
 }
 export type Toolbox = ReturnType<typeof createToolbox>;
