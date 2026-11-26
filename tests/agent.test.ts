@@ -168,10 +168,18 @@ it('returns bad_input for unknown tools and malformed tool inputs', async () => 
 describe('planner budget recovery', () => {
   const copenhagenRequest = { destination: 'Copenhagen', startDate: '2026-07-06', endDate: '2026-07-08', budget: 600, pace: 'balanced', interests: ['design', 'architecture'], dietary: 'vegetarian', flightId: 'cph-flight-saver', lodgingId: 'cph-budget' };
 
-  it('suggests the fitting slow-pace cheapest Copenhagen plan in the error details and message', async () => {
-    const result = await createToolbox().execute('calendar_day_planner', copenhagenRequest);
+  it('suggests the fitting slow-pace cheapest Copenhagen plan and matches its real planner total', async () => {
+    const box = createToolbox();
+    const result = await box.execute('calendar_day_planner', copenhagenRequest);
     expect(result).toMatchObject({ status: 'error', errorType: 'over_budget', details: { suggestions: [{ pace: 'slow', flightId: 'cph-flight-saver', lodgingId: 'cph-budget', estimated: 569 }] } });
-    if (result.status === 'error') expect(result.message).toContain('Try pace=slow with flightId=cph-flight-saver and lodgingId=cph-budget (estimated €569).');
+    if (result.status !== 'error') throw new Error('Expected over_budget result');
+    expect(result.message).toContain('Try pace=slow with flightId=cph-flight-saver and lodgingId=cph-budget (estimated €569).');
+    const suggestion = (result.details as any).suggestions[0];
+    const replanned = await box.execute('calendar_day_planner', { ...copenhagenRequest, pace: suggestion.pace, flightId: suggestion.flightId, lodgingId: suggestion.lodgingId });
+    expect(replanned.status).toBe('success');
+    if (replanned.status !== 'success') throw new Error('Suggested plan should fit the budget');
+    const submitted = await box.execute('submit_itinerary', { planId: (replanned.data as any).planId, summary: '', tips: [] });
+    expect((submitted as any).data.totals.estimated).toBe(suggestion.estimated);
   });
 
   it('rejects an identical call after its earlier budget failure', async () => {

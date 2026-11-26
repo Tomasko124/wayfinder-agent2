@@ -4,13 +4,16 @@ import { activitiesFor, cities, flights, lodgings, resolveCity, supportedCities,
 import { ItinerarySchema, type Itinerary, type ToolResult } from './types.js';
 
 type ToolSpec = { name: string; description: string; schema: z.ZodType; run: (input: any) => unknown };
+type Pace = 'slow' | 'balanced' | 'full';
+type Flight = (typeof flights)[keyof typeof flights][number];
+type Lodging = (typeof lodgings)[keyof typeof lodgings][number];
 const dateFields = { startDate: dateSchema, endDate: dateSchema };
-const datePeriod = z.object(dateFields).superRefine(({ startDate, endDate }, ctx) => {
-  if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
-});
 const supportedMessage = () => `Unsupported destination. Supported cities: ${supportedCities.join(', ')}.`;
 const unsupported = (): never => { throw Object.assign(new Error(supportedMessage()), { errorType: 'no_results', details: { supportedCities } }); };
 const interestsScore = (tags: string[], interests: string[]) => tags.reduce((score, tag) => score + (interests.some((interest) => tag.toLowerCase().includes(interest.toLowerCase()) || interest.toLowerCase().includes(tag.toLowerCase())) ? 1 : 0), 0);
+const validateDateOrder = ({ startDate, endDate }: { startDate: string; endDate: string }, ctx: z.RefinementCtx) => {
+  if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
+};
 
 export function createToolbox() {
   const plans = new Map<string, Itinerary>();
@@ -19,9 +22,7 @@ export function createToolbox() {
   const specs: ToolSpec[] = [
     {
       name: 'weather_lookup', description: 'Get deterministic per-day weather forecast.',
-      schema: z.object({ destination: z.string(), ...dateFields }).superRefine(({ startDate, endDate }, ctx) => {
-        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
-      }),
+      schema: z.object({ destination: z.string(), ...dateFields }).superRefine(validateDateOrder),
       run: ({ destination, startDate, endDate }) => {
         if (!resolveCity(destination)) return unsupported();
         dateRange(startDate, endDate);
@@ -30,9 +31,7 @@ export function createToolbox() {
     },
     {
       name: 'flight_price_lookup', description: 'Find destination-specific flight options, optionally capped at maxPrice.',
-      schema: z.object({ origin: z.string().optional(), destination: z.string(), ...dateFields, maxPrice: z.number().positive().optional() }).superRefine(({ startDate, endDate }, ctx) => {
-        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
-      }),
+      schema: z.object({ origin: z.string().optional(), destination: z.string(), ...dateFields, maxPrice: z.number().positive().optional() }).superRefine(validateDateOrder),
       run: ({ destination, maxPrice }) => {
         const city = resolveCity(destination);
         if (!city) return unsupported();
@@ -43,9 +42,7 @@ export function createToolbox() {
     },
     {
       name: 'lodging_lookup', description: 'Find lodging by destination and optional nightly cap.',
-      schema: z.object({ destination: z.string(), ...dateFields, maxNightlyRate: z.number().positive().optional() }).superRefine(({ startDate, endDate }, ctx) => {
-        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
-      }),
+      schema: z.object({ destination: z.string(), ...dateFields, maxNightlyRate: z.number().positive().optional() }).superRefine(validateDateOrder),
       run: ({ destination, startDate, endDate, maxNightlyRate }) => {
         const city = resolveCity(destination);
         if (!city) return unsupported();
@@ -66,98 +63,79 @@ export function createToolbox() {
     },
     {
       name: 'calendar_day_planner', description: 'Build a preference-aware, budget-checked itinerary and store it behind an opaque planId.',
-      schema: z.object({ destination: z.string(), ...dateFields, budget: z.number().positive(), pace: z.enum(['slow', 'balanced', 'full']), interests: z.array(z.string()), dietary: z.string(), flightId: z.string(), lodgingId: z.string(), activityIds: z.array(z.string()).optional() }).superRefine(({ startDate, endDate }, ctx) => {
-        if (endDate < startDate) ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'End date must be on or after start date' });
-      }),
-      run: (input) => {
-        const cityName = resolveCity(input.destination);
+      schema: z.object({ destination: z.string(), ...dateFields, budget: z.number().positive(), pace: z.enum(['slow', 'balanced', 'full']), interests: z.array(z.string()), dietary: z.string(), flightId: z.string(), lodgingId: z.string(), activityIds: z.array(z.string()).optional() }).superRefine(validateDateOrder),
+      run: (request) => {
+        const cityName = resolveCity(request.destination);
         if (!cityName) return unsupported();
-        const flight = flights[cityName].find((option) => option.id === input.flightId);
-        const lodge = lodgings[cityName].find((option) => option.id === input.lodgingId);
+        const flight = flights[cityName].find((option) => option.id === request.flightId);
+        const lodging = lodgings[cityName].find((option) => option.id === request.lodgingId);
         if (!flight) throw Object.assign(new Error(`Unknown flightId for ${cityName}.`), { errorType: 'bad_input' });
-        if (!lodge) throw Object.assign(new Error(`Unknown lodgingId for ${cityName}.`), { errorType: 'bad_input' });
-        const dates = dateRange(input.startDate, input.endDate);
-        const weather = weatherForDates(cityName, input.startDate, input.endDate)!;
-        const allActivities = activitiesFor(cityName);
-        if (input.activityIds && input.activityIds.some((id: string) => !allActivities.some((activity) => activity.id === id))) throw Object.assign(new Error('Unknown activityId.'), { errorType: 'bad_input' });
-        const pool: Activity[] = input.activityIds ? input.activityIds.map((id: string) => allActivities.find((activity) => activity.id === id)!) : allActivities;
-        const activityCostForPace = (pace: 'slow' | 'balanced' | 'full') => {
-          const paceCount = pace === 'slow' ? 2 : pace === 'balanced' ? 3 : 4;
+        if (!lodging) throw Object.assign(new Error(`Unknown lodgingId for ${cityName}.`), { errorType: 'bad_input' });
+        const activities = activitiesFor(cityName);
+        if (request.activityIds?.some((id: string) => !activities.some((activity) => activity.id === id))) throw Object.assign(new Error('Unknown activityId.'), { errorType: 'bad_input' });
+        const pool: Activity[] = request.activityIds ? request.activityIds.map((id: string) => activities.find((activity) => activity.id === id)!) : activities;
+
+        const buildPlan = ({ pace, flight: selectedFlight, lodging: selectedLodging }: { pace: Pace; flight: Flight; lodging: Lodging }) => {
+          const dates = dateRange(request.startDate, request.endDate);
+          const weather = weatherForDates(cityName, request.startDate, request.endDate)!;
+          const slots = ['morning', 'afternoon', 'evening', 'late'];
+          const perDay = pace === 'slow' ? 2 : pace === 'balanced' ? 3 : 4;
           const used = new Set<string>();
-          let cost = 0;
-          dates.forEach((_, dayIndex) => {
+          let activityTotal = 0;
+          const days = dates.map((date, dayIndex) => {
             const forecast = weather[dayIndex];
+            const items: Itinerary['days'][number]['items'] = [];
             let foodStops = 0;
-            for (const slot of ['morning', 'afternoon', 'evening', 'late'].slice(0, paceCount)) {
-              const activity = pool.filter((item) => !used.has(item.id) && (item.category !== 'food' || foodStops === 0) && (item.category !== 'food' || input.dietary.toLowerCase() === 'none' || item.diets.includes(input.dietary.toLowerCase()))).sort((a, b) => {
-                const score = (item: Activity) => interestsScore(item.tags, input.interests) * 10 + Number(item.bestTime.toLowerCase() === slot) * 5 + Number(forecast.rainy && item.indoor) * 3;
+            for (const slot of slots.slice(0, perDay)) {
+              const activity = pool.filter((item) => !used.has(item.id) && (item.category !== 'food' || foodStops === 0) && (item.category !== 'food' || request.dietary.toLowerCase() === 'none' || item.diets.includes(request.dietary.toLowerCase()))).sort((a, b) => {
+                const score = (item: Activity) => interestsScore(item.tags, request.interests) * 10 + Number(item.bestTime.toLowerCase() === slot) * 5 + Number(forecast.rainy && item.indoor) * 3;
                 return score(b) - score(a);
               })[0];
-              if (!activity) continue;
+              if (!activity) {
+                items.push({ slot, activityId: 'free-time', name: 'Free time', category: 'free_time', cost: 0, durationHours: 0, indoor: forecast.rainy, note: 'Activity pool exhausted; unstructured time has no activity cost.' });
+                continue;
+              }
               used.add(activity.id);
               if (activity.category === 'food') foodStops++;
-              cost += activity.cost;
+              activityTotal += activity.cost;
+              items.push({ slot, activityId: activity.id, name: activity.name, category: activity.category, cost: activity.cost, durationHours: activity.durationHours, indoor: activity.indoor, note: `${activity.bestTime === slot ? 'Best time of day.' : 'Flexible timing.'}${forecast.rainy && activity.indoor ? ' Indoor choice for rainy weather.' : ''}` });
             }
+            return { date, weather: forecast, items, dayCost: items.reduce((sum, item) => sum + item.cost, 0) + cities[cityName].allowance };
           });
-          return cost;
+          const nights = nightsBetween(request.startDate, request.endDate);
+          const lodgingTotal = selectedLodging.nightlyRate * nights;
+          const localAllowance = cities[cityName].allowance * dates.length;
+          const estimated = selectedFlight.price + lodgingTotal + activityTotal + localAllowance;
+          const itinerary = ItinerarySchema.parse({
+            destination: cityName, startDate: request.startDate, endDate: request.endDate, currency: 'EUR',
+            flight: { id: selectedFlight.id, airline: selectedFlight.airline, price: selectedFlight.price },
+            lodging: { id: selectedLodging.id, name: selectedLodging.name, neighborhood: selectedLodging.neighborhood, nightlyRate: selectedLodging.nightlyRate, nights, total: lodgingTotal },
+            days, totals: { flight: selectedFlight.price, lodging: lodgingTotal, activities: activityTotal, localAllowance, estimated, budget: request.budget, remaining: request.budget - estimated },
+            notes: ['One traveller; all estimates are in EUR.', 'Free-time items cost €0 and are excluded from activity spend.', 'Activity times are suggested slots; arrival and departure times are not modeled.'], summary: '', tips: [],
+          });
+          return { itinerary, totals: itinerary.totals };
         };
-        const paceCount = input.pace === 'slow' ? 2 : input.pace === 'balanced' ? 3 : 4;
-        const used = new Set<string>();
-        let activitiesTotal = 0;
-        const days = dates.map((date, dayIndex) => {
-          const forecast = weather[dayIndex];
-          const slots = ['morning', 'afternoon', 'evening', 'late'];
-          const items: Itinerary['days'][number]['items'] = [];
-          let foodStops = 0;
-          for (const slot of slots.slice(0, paceCount)) {
-            const candidates = pool.filter((activity) => !used.has(activity.id) && (activity.category !== 'food' || foodStops === 0) && (activity.category !== 'food' || input.dietary.toLowerCase() === 'none' || activity.diets.includes(input.dietary.toLowerCase()))).sort((a, b) => {
-              const score = (activity: typeof a) => interestsScore(activity.tags, input.interests) * 10 + Number(activity.bestTime.toLowerCase() === slot) * 5 + Number(forecast.rainy && activity.indoor) * 3;
-              return score(b) - score(a);
-            });
-            const activity = candidates[0];
-            if (!activity) {
-              items.push({ slot, activityId: 'free-time', name: 'Free time', category: 'free_time', cost: 0, durationHours: 0, indoor: forecast.rainy, note: 'Activity pool exhausted; unstructured time has no activity cost.' });
-              continue;
-            }
-            used.add(activity.id);
-            if (activity.category === 'food') foodStops++;
-            activitiesTotal += activity.cost;
-            items.push({ slot, activityId: activity.id, name: activity.name, category: activity.category, cost: activity.cost, durationHours: activity.durationHours, indoor: activity.indoor, note: `${activity.bestTime === slot ? 'Best time of day.' : 'Flexible timing.'}${forecast.rainy && activity.indoor ? ' Indoor choice for rainy weather.' : ''}` });
-          }
-          return { date, weather: forecast, items, dayCost: items.reduce((sum, item) => sum + item.cost, 0) + cities[cityName].allowance };
-        });
-        const nights = nightsBetween(input.startDate, input.endDate);
-        const lodgingTotal = lodge.nightlyRate * nights;
-        const localAllowance = cities[cityName].allowance * dates.length;
-        const estimated = flight.price + lodgingTotal + activitiesTotal + localAllowance;
-        if (estimated > input.budget) {
+
+        const current = buildPlan({ pace: request.pace, flight, lodging });
+        if (current.totals.estimated > request.budget) {
           const cheapestFlight = flights[cityName][0];
           const cheapestLodging = lodgings[cityName][0];
-          const paceOrder = ['full', 'balanced', 'slow'] as const;
-          const requestedPaceIndex = paceOrder.indexOf(input.pace);
-          const suggestions = paceOrder.slice(requestedPaceIndex).map((pace) => ({
-            pace,
-            flightId: cheapestFlight.id,
-            lodgingId: cheapestLodging.id,
-            estimated: cheapestFlight.price + cheapestLodging.nightlyRate * nights + activityCostForPace(pace) + localAllowance,
-          })).filter((suggestion) => suggestion.estimated <= input.budget);
+          const paceOrder: Pace[] = ['full', 'balanced', 'slow'];
+          const paces = paceOrder.slice(paceOrder.indexOf(request.pace));
+          const suggestions = paces.map((pace) => {
+            const candidate = buildPlan({ pace, flight: cheapestFlight, lodging: cheapestLodging });
+            return { pace, flightId: cheapestFlight.id, lodgingId: cheapestLodging.id, estimated: candidate.totals.estimated };
+          }).filter((suggestion) => suggestion.estimated <= request.budget);
           const bestSuggestion = suggestions[0];
           const message = bestSuggestion
-            ? `Estimated €${estimated} exceeds budget €${input.budget}. Try pace=${bestSuggestion.pace} with flightId=${bestSuggestion.flightId} and lodgingId=${bestSuggestion.lodgingId} (estimated €${bestSuggestion.estimated}).`
-            : `Estimated €${estimated} exceeds budget €${input.budget}. Even the cheapest options exceed the budget; call ask_clarification and ask the user to raise the budget or shorten the trip.`;
-          const minimumPossible = cheapestFlight.price + cheapestLodging.nightlyRate * nights + localAllowance;
-          throw Object.assign(new Error(message), { errorType: 'over_budget', details: { estimated, budget: input.budget, overage: estimated - input.budget, breakdown: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance }, minimumPossible, suggestions } });
+            ? `Estimated €${current.totals.estimated} exceeds budget €${request.budget}. Try pace=${bestSuggestion.pace} with flightId=${bestSuggestion.flightId} and lodgingId=${bestSuggestion.lodgingId} (estimated €${bestSuggestion.estimated}).`
+            : `Estimated €${current.totals.estimated} exceeds budget €${request.budget}. Even the cheapest options exceed the budget; call ask_clarification and ask the user to raise the budget or shorten the trip.`;
+          const minimumPossible = cheapestFlight.price + cheapestLodging.nightlyRate * current.itinerary.lodging.nights + current.totals.localAllowance;
+          throw Object.assign(new Error(message), { errorType: 'over_budget', details: { estimated: current.totals.estimated, budget: request.budget, overage: current.totals.estimated - request.budget, breakdown: { flight: current.totals.flight, lodging: current.totals.lodging, activities: current.totals.activities, localAllowance: current.totals.localAllowance }, minimumPossible, suggestions } });
         }
-        const plan = ItinerarySchema.parse({
-          destination: cityName, startDate: input.startDate, endDate: input.endDate, currency: 'EUR',
-          flight: { id: flight.id, airline: flight.airline, price: flight.price },
-          lodging: { id: lodge.id, name: lodge.name, neighborhood: lodge.neighborhood, nightlyRate: lodge.nightlyRate, nights, total: lodgingTotal },
-          days, totals: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance, estimated, budget: input.budget, remaining: input.budget - estimated },
-          notes: ['One traveller; all estimates are in EUR.', 'Free-time items cost €0 and are excluded from activity spend.', 'Activity times are suggested slots; arrival and departure times are not modeled.'], summary: '', tips: [],
-        });
         const planId = `plan-${++planCounter}`;
-        plans.set(planId, plan);
-        return { planId, preview: { destination: cityName, estimated, budget: input.budget } };
+        plans.set(planId, current.itinerary);
+        return { planId, preview: { destination: current.itinerary.destination, estimated: current.totals.estimated, budget: request.budget } };
       },
     },
     { name: 'ask_clarification', description: 'Finish by asking one concise clarifying question.', schema: z.object({ question: z.string().min(1) }), run: ({ question }) => ({ question }) },
