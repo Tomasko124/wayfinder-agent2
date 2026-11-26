@@ -1,7 +1,146 @@
 {
-  "status": "failed",
-  "reason": "llm_error",
-  "message": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011ChRNuyoQ86zfp3fro8VDe\"}",
+  "status": "success",
+  "itinerary": {
+    "destination": "Lisbon",
+    "startDate": "2026-05-10",
+    "endDate": "2026-05-12",
+    "currency": "EUR",
+    "flight": {
+      "id": "lis-flight-standard",
+      "airline": "EuroAir",
+      "price": 280
+    },
+    "lodging": {
+      "id": "lisbon-budget",
+      "name": "Casa do Bairro",
+      "neighborhood": "Graça",
+      "nightlyRate": 55,
+      "nights": 2,
+      "total": 110
+    },
+    "days": [
+      {
+        "date": "2026-05-10",
+        "weather": {
+          "condition": "Sunny",
+          "high": 17,
+          "low": 10,
+          "rainChance": 11,
+          "rainy": false
+        },
+        "items": [
+          {
+            "slot": "morning",
+            "activityId": "alfama",
+            "name": "Alfama walking tour",
+            "category": "culture",
+            "cost": 18,
+            "durationHours": 2,
+            "indoor": false,
+            "note": "Best time of day."
+          },
+          {
+            "slot": "afternoon",
+            "activityId": "belem",
+            "name": "Belém riverside walk",
+            "category": "walking",
+            "cost": 0,
+            "durationHours": 2,
+            "indoor": false,
+            "note": "Best time of day."
+          }
+        ],
+        "dayCost": 60
+      },
+      {
+        "date": "2026-05-11",
+        "weather": {
+          "condition": "Cloudy",
+          "high": 18,
+          "low": 11,
+          "rainChance": 28,
+          "rainy": false
+        },
+        "items": [
+          {
+            "slot": "morning",
+            "activityId": "tile-museum",
+            "name": "National Tile Museum",
+            "category": "museum",
+            "cost": 8,
+            "durationHours": 2,
+            "indoor": true,
+            "note": "Flexible timing."
+          },
+          {
+            "slot": "afternoon",
+            "activityId": "viewpoint",
+            "name": "São Jorge Castle viewpoint",
+            "category": "history",
+            "cost": 15,
+            "durationHours": 2,
+            "indoor": false,
+            "note": "Best time of day."
+          }
+        ],
+        "dayCost": 65
+      },
+      {
+        "date": "2026-05-12",
+        "weather": {
+          "condition": "Cloudy",
+          "high": 19,
+          "low": 12,
+          "rainChance": 45,
+          "rainy": false
+        },
+        "items": [
+          {
+            "slot": "morning",
+            "activityId": "pastel",
+            "name": "Pastel de nata tasting",
+            "category": "food",
+            "cost": 9,
+            "durationHours": 1,
+            "indoor": true,
+            "note": "Best time of day."
+          },
+          {
+            "slot": "afternoon",
+            "activityId": "oceanarium",
+            "name": "Lisbon Oceanarium",
+            "category": "nature",
+            "cost": 25,
+            "durationHours": 3,
+            "indoor": true,
+            "note": "Best time of day."
+          }
+        ],
+        "dayCost": 76
+      }
+    ],
+    "totals": {
+      "flight": 280,
+      "lodging": 110,
+      "activities": 75,
+      "localAllowance": 126,
+      "estimated": 591,
+      "budget": 900,
+      "remaining": 309
+    },
+    "notes": [
+      "One traveller; all estimates are in EUR.",
+      "Free-time items cost €0 and are excluded from activity spend.",
+      "Activity times are suggested slots; arrival and departure times are not modeled."
+    ],
+    "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities.",
+    "tips": [
+      "Enjoy the morning at the Bertrand bookshop for a cultural start.",
+      "Take a leisurely walk in the Alfama district for history and walking.",
+      "Visit the National Tile Museum in the afternoon for a history lesson.",
+      "End your day with a traditional Pastel de nata tasting."
+    ]
+  },
   "trace": [
     {
       "iteration": 0,
@@ -22,15 +161,780 @@
         }
       },
       "seq": 1,
-      "timestamp": "2026-11-26T10:25:57.854Z"
+      "timestamp": "2026-11-26T16:13:28.803Z"
     },
     {
       "iteration": 1,
-      "type": "failed",
-      "output": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011ChRNuyoQ86zfp3fro8VDe\"}",
-      "durationMs": 621.16175,
+      "type": "llm_turn",
+      "text": "",
+      "output": [
+        "weather_lookup",
+        "flight_price_lookup",
+        "lodging_lookup",
+        "attractions_lookup"
+      ],
+      "durationMs": 10424.658916,
+      "usage": {
+        "input_tokens": 793,
+        "output_tokens": 223
+      },
       "seq": 2,
-      "timestamp": "2026-11-26T10:25:58.477Z"
+      "timestamp": "2026-11-26T16:13:39.229Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_call",
+      "tool": "weather_lookup",
+      "input": {
+        "destination": "Lisbon",
+        "startDate": "2026-05-10",
+        "endDate": "2026-05-12"
+      },
+      "seq": 3,
+      "timestamp": "2026-11-26T16:13:39.229Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_result",
+      "tool": "weather_lookup",
+      "output": {
+        "status": "success",
+        "data": [
+          {
+            "date": "2026-05-10",
+            "condition": "Sunny",
+            "high": 17,
+            "low": 10,
+            "rainChance": 11,
+            "rainy": false
+          },
+          {
+            "date": "2026-05-11",
+            "condition": "Cloudy",
+            "high": 18,
+            "low": 11,
+            "rainChance": 28,
+            "rainy": false
+          },
+          {
+            "date": "2026-05-12",
+            "condition": "Cloudy",
+            "high": 19,
+            "low": 12,
+            "rainChance": 45,
+            "rainy": false
+          }
+        ]
+      },
+      "isError": false,
+      "seq": 4,
+      "timestamp": "2026-11-26T16:13:39.230Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_call",
+      "tool": "flight_price_lookup",
+      "input": {
+        "origin": "PRG",
+        "destination": "Lisbon",
+        "startDate": "2026-05-10",
+        "endDate": "2026-05-12"
+      },
+      "seq": 5,
+      "timestamp": "2026-11-26T16:13:39.230Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_result",
+      "tool": "flight_price_lookup",
+      "output": {
+        "status": "success",
+        "data": [
+          {
+            "id": "lis-flight-saver",
+            "airline": "SkyWays",
+            "price": 180,
+            "stops": 1,
+            "tier": "saver"
+          },
+          {
+            "id": "lis-flight-standard",
+            "airline": "EuroAir",
+            "price": 280,
+            "stops": 0,
+            "tier": "standard"
+          },
+          {
+            "id": "lis-flight-flex",
+            "airline": "GlobalJet",
+            "price": 420,
+            "stops": 0,
+            "tier": "flex"
+          }
+        ]
+      },
+      "isError": false,
+      "seq": 6,
+      "timestamp": "2026-11-26T16:13:39.231Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_call",
+      "tool": "lodging_lookup",
+      "input": {
+        "maxNightlyRate": 300,
+        "destination": "Lisbon",
+        "startDate": "2026-05-10",
+        "endDate": "2026-05-12"
+      },
+      "seq": 7,
+      "timestamp": "2026-11-26T16:13:39.231Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_result",
+      "tool": "lodging_lookup",
+      "output": {
+        "status": "success",
+        "data": [
+          {
+            "id": "lisbon-budget",
+            "name": "Casa do Bairro",
+            "neighborhood": "Graça",
+            "nightlyRate": 55,
+            "tier": "budget",
+            "nights": 2,
+            "total": 110
+          },
+          {
+            "id": "lisbon-mid",
+            "name": "Riverlight Hotel",
+            "neighborhood": "Baixa",
+            "nightlyRate": 105,
+            "tier": "mid",
+            "nights": 2,
+            "total": 210
+          },
+          {
+            "id": "lisbon-comfort",
+            "name": "Palácio Azul",
+            "neighborhood": "Chiado",
+            "nightlyRate": 190,
+            "tier": "comfort",
+            "nights": 2,
+            "total": 380
+          }
+        ]
+      },
+      "isError": false,
+      "seq": 8,
+      "timestamp": "2026-11-26T16:13:39.232Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_call",
+      "tool": "attractions_lookup",
+      "input": {
+        "destination": "Lisbon",
+        "interests": [
+          "history",
+          "walking"
+        ],
+        "dietary": "vegetarian",
+        "pace": "slow"
+      },
+      "seq": 9,
+      "timestamp": "2026-11-26T16:13:39.232Z"
+    },
+    {
+      "iteration": 1,
+      "type": "tool_result",
+      "tool": "attractions_lookup",
+      "output": {
+        "status": "success",
+        "data": [
+          {
+            "id": "alfama",
+            "name": "Alfama walking tour",
+            "category": "culture",
+            "tags": [
+              "history",
+              "walking"
+            ],
+            "cost": 18,
+            "durationHours": 2,
+            "indoor": false,
+            "bestTime": "morning",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 2
+          },
+          {
+            "id": "belem",
+            "name": "Belém riverside walk",
+            "category": "walking",
+            "tags": [
+              "walking",
+              "history"
+            ],
+            "cost": 0,
+            "durationHours": 2,
+            "indoor": false,
+            "bestTime": "afternoon",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 2
+          },
+          {
+            "id": "tile-museum",
+            "name": "National Tile Museum",
+            "category": "museum",
+            "tags": [
+              "art",
+              "history"
+            ],
+            "cost": 8,
+            "durationHours": 2,
+            "indoor": true,
+            "bestTime": "afternoon",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 1
+          },
+          {
+            "id": "viewpoint",
+            "name": "São Jorge Castle viewpoint",
+            "category": "history",
+            "tags": [
+              "history",
+              "photography"
+            ],
+            "cost": 15,
+            "durationHours": 2,
+            "indoor": false,
+            "bestTime": "afternoon",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 1
+          },
+          {
+            "id": "oceanarium",
+            "name": "Lisbon Oceanarium",
+            "category": "nature",
+            "tags": [
+              "family",
+              "nature"
+            ],
+            "cost": 25,
+            "durationHours": 3,
+            "indoor": true,
+            "bestTime": "afternoon",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 0
+          },
+          {
+            "id": "pastel",
+            "name": "Pastel de nata tasting",
+            "category": "food",
+            "tags": [
+              "food",
+              "culture"
+            ],
+            "cost": 9,
+            "durationHours": 1,
+            "indoor": true,
+            "bestTime": "morning",
+            "diets": [
+              "vegetarian"
+            ],
+            "interestScore": 0
+          },
+          {
+            "id": "tram",
+            "name": "Historic tram ride",
+            "category": "sightseeing",
+            "tags": [
+              "photography",
+              "culture"
+            ],
+            "cost": 7,
+            "durationHours": 1,
+            "indoor": false,
+            "bestTime": "morning",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 0
+          },
+          {
+            "id": "fado",
+            "name": "Fado evening",
+            "category": "music",
+            "tags": [
+              "music",
+              "culture"
+            ],
+            "cost": 32,
+            "durationHours": 2,
+            "indoor": true,
+            "bestTime": "evening",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 0
+          },
+          {
+            "id": "market",
+            "name": "Time Out Market",
+            "category": "food",
+            "tags": [
+              "food"
+            ],
+            "cost": 16,
+            "durationHours": 1,
+            "indoor": true,
+            "bestTime": "lunch",
+            "diets": [
+              "vegetarian",
+              "gluten-free"
+            ],
+            "interestScore": 0
+          },
+          {
+            "id": "bookshop",
+            "name": "Bertrand bookshop visit",
+            "category": "culture",
+            "tags": [
+              "books",
+              "culture"
+            ],
+            "cost": 0,
+            "durationHours": 1,
+            "indoor": true,
+            "bestTime": "morning",
+            "diets": [
+              "vegetarian",
+              "vegan",
+              "gluten-free"
+            ],
+            "interestScore": 0
+          }
+        ]
+      },
+      "isError": false,
+      "seq": 10,
+      "timestamp": "2026-11-26T16:13:39.232Z"
+    },
+    {
+      "iteration": 2,
+      "type": "llm_turn",
+      "text": "",
+      "output": [
+        "calendar_day_planner"
+      ],
+      "durationMs": 10661.228749999998,
+      "usage": {
+        "input_tokens": 1994,
+        "output_tokens": 105
+      },
+      "seq": 11,
+      "timestamp": "2026-11-26T16:13:49.894Z"
+    },
+    {
+      "iteration": 2,
+      "type": "tool_call",
+      "tool": "calendar_day_planner",
+      "input": {
+        "budget": 900,
+        "pace": "slow",
+        "interests": [
+          "history",
+          "walking"
+        ],
+        "flightId": "lis-flight-standard",
+        "destination": "Lisbon",
+        "startDate": "2026-05-10",
+        "endDate": "2026-05-12",
+        "dietary": "vegetarian",
+        "lodgingId": "lisbon-budget"
+      },
+      "seq": 12,
+      "timestamp": "2026-11-26T16:13:49.894Z"
+    },
+    {
+      "iteration": 2,
+      "type": "tool_result",
+      "tool": "calendar_day_planner",
+      "output": {
+        "status": "success",
+        "data": {
+          "planId": "plan-1",
+          "preview": {
+            "destination": "Lisbon",
+            "estimated": 591,
+            "budget": 900
+          }
+        }
+      },
+      "isError": false,
+      "seq": 13,
+      "timestamp": "2026-11-26T16:13:49.900Z"
+    },
+    {
+      "iteration": 3,
+      "type": "llm_turn",
+      "text": "",
+      "output": [
+        "submit_itinerary"
+      ],
+      "durationMs": 5834.930084,
+      "usage": {
+        "input_tokens": 2133,
+        "output_tokens": 111
+      },
+      "seq": 14,
+      "timestamp": "2026-11-26T16:13:55.735Z"
+    },
+    {
+      "iteration": 3,
+      "type": "tool_call",
+      "tool": "submit_itinerary",
+      "input": {
+        "tips": [
+          "Enjoy the morning at the Bertrand bookshop for a cultural start.",
+          "Take a leisurely walk in the Alfama district for history and walking.",
+          "Visit the National Tile Museum in the afternoon for a history lesson.",
+          "End your day with a traditional Pastel de nata tasting."
+        ],
+        "planId": "plan-1",
+        "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities."
+      },
+      "seq": 15,
+      "timestamp": "2026-11-26T16:13:55.735Z"
+    },
+    {
+      "iteration": 3,
+      "type": "tool_result",
+      "tool": "submit_itinerary",
+      "output": {
+        "status": "success",
+        "data": {
+          "destination": "Lisbon",
+          "startDate": "2026-05-10",
+          "endDate": "2026-05-12",
+          "currency": "EUR",
+          "flight": {
+            "id": "lis-flight-standard",
+            "airline": "EuroAir",
+            "price": 280
+          },
+          "lodging": {
+            "id": "lisbon-budget",
+            "name": "Casa do Bairro",
+            "neighborhood": "Graça",
+            "nightlyRate": 55,
+            "nights": 2,
+            "total": 110
+          },
+          "days": [
+            {
+              "date": "2026-05-10",
+              "weather": {
+                "condition": "Sunny",
+                "high": 17,
+                "low": 10,
+                "rainChance": 11,
+                "rainy": false
+              },
+              "items": [
+                {
+                  "slot": "morning",
+                  "activityId": "alfama",
+                  "name": "Alfama walking tour",
+                  "category": "culture",
+                  "cost": 18,
+                  "durationHours": 2,
+                  "indoor": false,
+                  "note": "Best time of day."
+                },
+                {
+                  "slot": "afternoon",
+                  "activityId": "belem",
+                  "name": "Belém riverside walk",
+                  "category": "walking",
+                  "cost": 0,
+                  "durationHours": 2,
+                  "indoor": false,
+                  "note": "Best time of day."
+                }
+              ],
+              "dayCost": 60
+            },
+            {
+              "date": "2026-05-11",
+              "weather": {
+                "condition": "Cloudy",
+                "high": 18,
+                "low": 11,
+                "rainChance": 28,
+                "rainy": false
+              },
+              "items": [
+                {
+                  "slot": "morning",
+                  "activityId": "tile-museum",
+                  "name": "National Tile Museum",
+                  "category": "museum",
+                  "cost": 8,
+                  "durationHours": 2,
+                  "indoor": true,
+                  "note": "Flexible timing."
+                },
+                {
+                  "slot": "afternoon",
+                  "activityId": "viewpoint",
+                  "name": "São Jorge Castle viewpoint",
+                  "category": "history",
+                  "cost": 15,
+                  "durationHours": 2,
+                  "indoor": false,
+                  "note": "Best time of day."
+                }
+              ],
+              "dayCost": 65
+            },
+            {
+              "date": "2026-05-12",
+              "weather": {
+                "condition": "Cloudy",
+                "high": 19,
+                "low": 12,
+                "rainChance": 45,
+                "rainy": false
+              },
+              "items": [
+                {
+                  "slot": "morning",
+                  "activityId": "pastel",
+                  "name": "Pastel de nata tasting",
+                  "category": "food",
+                  "cost": 9,
+                  "durationHours": 1,
+                  "indoor": true,
+                  "note": "Best time of day."
+                },
+                {
+                  "slot": "afternoon",
+                  "activityId": "oceanarium",
+                  "name": "Lisbon Oceanarium",
+                  "category": "nature",
+                  "cost": 25,
+                  "durationHours": 3,
+                  "indoor": true,
+                  "note": "Best time of day."
+                }
+              ],
+              "dayCost": 76
+            }
+          ],
+          "totals": {
+            "flight": 280,
+            "lodging": 110,
+            "activities": 75,
+            "localAllowance": 126,
+            "estimated": 591,
+            "budget": 900,
+            "remaining": 309
+          },
+          "notes": [
+            "One traveller; all estimates are in EUR.",
+            "Free-time items cost €0 and are excluded from activity spend.",
+            "Activity times are suggested slots; arrival and departure times are not modeled."
+          ],
+          "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities.",
+          "tips": [
+            "Enjoy the morning at the Bertrand bookshop for a cultural start.",
+            "Take a leisurely walk in the Alfama district for history and walking.",
+            "Visit the National Tile Museum in the afternoon for a history lesson.",
+            "End your day with a traditional Pastel de nata tasting."
+          ]
+        }
+      },
+      "isError": false,
+      "seq": 16,
+      "timestamp": "2026-11-26T16:13:55.736Z"
+    },
+    {
+      "iteration": 3,
+      "type": "final",
+      "tool": "submit_itinerary",
+      "output": {
+        "destination": "Lisbon",
+        "startDate": "2026-05-10",
+        "endDate": "2026-05-12",
+        "currency": "EUR",
+        "flight": {
+          "id": "lis-flight-standard",
+          "airline": "EuroAir",
+          "price": 280
+        },
+        "lodging": {
+          "id": "lisbon-budget",
+          "name": "Casa do Bairro",
+          "neighborhood": "Graça",
+          "nightlyRate": 55,
+          "nights": 2,
+          "total": 110
+        },
+        "days": [
+          {
+            "date": "2026-05-10",
+            "weather": {
+              "condition": "Sunny",
+              "high": 17,
+              "low": 10,
+              "rainChance": 11,
+              "rainy": false
+            },
+            "items": [
+              {
+                "slot": "morning",
+                "activityId": "alfama",
+                "name": "Alfama walking tour",
+                "category": "culture",
+                "cost": 18,
+                "durationHours": 2,
+                "indoor": false,
+                "note": "Best time of day."
+              },
+              {
+                "slot": "afternoon",
+                "activityId": "belem",
+                "name": "Belém riverside walk",
+                "category": "walking",
+                "cost": 0,
+                "durationHours": 2,
+                "indoor": false,
+                "note": "Best time of day."
+              }
+            ],
+            "dayCost": 60
+          },
+          {
+            "date": "2026-05-11",
+            "weather": {
+              "condition": "Cloudy",
+              "high": 18,
+              "low": 11,
+              "rainChance": 28,
+              "rainy": false
+            },
+            "items": [
+              {
+                "slot": "morning",
+                "activityId": "tile-museum",
+                "name": "National Tile Museum",
+                "category": "museum",
+                "cost": 8,
+                "durationHours": 2,
+                "indoor": true,
+                "note": "Flexible timing."
+              },
+              {
+                "slot": "afternoon",
+                "activityId": "viewpoint",
+                "name": "São Jorge Castle viewpoint",
+                "category": "history",
+                "cost": 15,
+                "durationHours": 2,
+                "indoor": false,
+                "note": "Best time of day."
+              }
+            ],
+            "dayCost": 65
+          },
+          {
+            "date": "2026-05-12",
+            "weather": {
+              "condition": "Cloudy",
+              "high": 19,
+              "low": 12,
+              "rainChance": 45,
+              "rainy": false
+            },
+            "items": [
+              {
+                "slot": "morning",
+                "activityId": "pastel",
+                "name": "Pastel de nata tasting",
+                "category": "food",
+                "cost": 9,
+                "durationHours": 1,
+                "indoor": true,
+                "note": "Best time of day."
+              },
+              {
+                "slot": "afternoon",
+                "activityId": "oceanarium",
+                "name": "Lisbon Oceanarium",
+                "category": "nature",
+                "cost": 25,
+                "durationHours": 3,
+                "indoor": true,
+                "note": "Best time of day."
+              }
+            ],
+            "dayCost": 76
+          }
+        ],
+        "totals": {
+          "flight": 280,
+          "lodging": 110,
+          "activities": 75,
+          "localAllowance": 126,
+          "estimated": 591,
+          "budget": 900,
+          "remaining": 309
+        },
+        "notes": [
+          "One traveller; all estimates are in EUR.",
+          "Free-time items cost €0 and are excluded from activity spend.",
+          "Activity times are suggested slots; arrival and departure times are not modeled."
+        ],
+        "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities.",
+        "tips": [
+          "Enjoy the morning at the Bertrand bookshop for a cultural start.",
+          "Take a leisurely walk in the Alfama district for history and walking.",
+          "Visit the National Tile Museum in the afternoon for a history lesson.",
+          "End your day with a traditional Pastel de nata tasting."
+        ]
+      },
+      "seq": 17,
+      "timestamp": "2026-11-26T16:13:55.736Z"
     }
-  ]
+  ],
+  "llm": {
+    "provider": "openai-compatible",
+    "model": "qwen2.5:7b"
+  }
 }

@@ -14,6 +14,7 @@ const interestsScore = (tags: string[], interests: string[]) => tags.reduce((sco
 
 export function createToolbox() {
   const plans = new Map<string, Itinerary>();
+  const failedPlannerCalls = new Set<string>();
   let planCounter = 0;
   const specs: ToolSpec[] = [
     {
@@ -80,6 +81,26 @@ export function createToolbox() {
         const allActivities = activitiesFor(cityName);
         if (input.activityIds && input.activityIds.some((id: string) => !allActivities.some((activity) => activity.id === id))) throw Object.assign(new Error('Unknown activityId.'), { errorType: 'bad_input' });
         const pool: Activity[] = input.activityIds ? input.activityIds.map((id: string) => allActivities.find((activity) => activity.id === id)!) : allActivities;
+        const activityCostForPace = (pace: 'slow' | 'balanced' | 'full') => {
+          const paceCount = pace === 'slow' ? 2 : pace === 'balanced' ? 3 : 4;
+          const used = new Set<string>();
+          let cost = 0;
+          dates.forEach((_, dayIndex) => {
+            const forecast = weather[dayIndex];
+            let foodStops = 0;
+            for (const slot of ['morning', 'afternoon', 'evening', 'late'].slice(0, paceCount)) {
+              const activity = pool.filter((item) => !used.has(item.id) && (item.category !== 'food' || foodStops === 0) && (item.category !== 'food' || input.dietary.toLowerCase() === 'none' || item.diets.includes(input.dietary.toLowerCase()))).sort((a, b) => {
+                const score = (item: Activity) => interestsScore(item.tags, input.interests) * 10 + Number(item.bestTime.toLowerCase() === slot) * 5 + Number(forecast.rainy && item.indoor) * 3;
+                return score(b) - score(a);
+              })[0];
+              if (!activity) continue;
+              used.add(activity.id);
+              if (activity.category === 'food') foodStops++;
+              cost += activity.cost;
+            }
+          });
+          return cost;
+        };
         const paceCount = input.pace === 'slow' ? 2 : input.pace === 'balanced' ? 3 : 4;
         const used = new Set<string>();
         let activitiesTotal = 0;
@@ -110,8 +131,22 @@ export function createToolbox() {
         const localAllowance = cities[cityName].allowance * dates.length;
         const estimated = flight.price + lodgingTotal + activitiesTotal + localAllowance;
         if (estimated > input.budget) {
-          const minimumPossible = flights[cityName][0].price + lodgings[cityName][0].nightlyRate * nights + localAllowance;
-          throw Object.assign(new Error(`Estimated €${estimated} exceeds budget €${input.budget}.`), { errorType: 'over_budget', details: { estimated, budget: input.budget, overage: estimated - input.budget, breakdown: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance }, minimumPossible } });
+          const cheapestFlight = flights[cityName][0];
+          const cheapestLodging = lodgings[cityName][0];
+          const paceOrder = ['full', 'balanced', 'slow'] as const;
+          const requestedPaceIndex = paceOrder.indexOf(input.pace);
+          const suggestions = paceOrder.slice(requestedPaceIndex).map((pace) => ({
+            pace,
+            flightId: cheapestFlight.id,
+            lodgingId: cheapestLodging.id,
+            estimated: cheapestFlight.price + cheapestLodging.nightlyRate * nights + activityCostForPace(pace) + localAllowance,
+          })).filter((suggestion) => suggestion.estimated <= input.budget);
+          const bestSuggestion = suggestions[0];
+          const message = bestSuggestion
+            ? `Estimated €${estimated} exceeds budget €${input.budget}. Try pace=${bestSuggestion.pace} with flightId=${bestSuggestion.flightId} and lodgingId=${bestSuggestion.lodgingId} (estimated €${bestSuggestion.estimated}).`
+            : `Estimated €${estimated} exceeds budget €${input.budget}. Even the cheapest options exceed the budget; call ask_clarification and ask the user to raise the budget or shorten the trip.`;
+          const minimumPossible = cheapestFlight.price + cheapestLodging.nightlyRate * nights + localAllowance;
+          throw Object.assign(new Error(message), { errorType: 'over_budget', details: { estimated, budget: input.budget, overage: estimated - input.budget, breakdown: { flight: flight.price, lodging: lodgingTotal, activities: activitiesTotal, localAllowance }, minimumPossible, suggestions } });
         }
         const plan = ItinerarySchema.parse({
           destination: cityName, startDate: input.startDate, endDate: input.endDate, currency: 'EUR',
@@ -136,8 +171,11 @@ export function createToolbox() {
       if (!spec) return { status: 'error', errorType: 'bad_input', message: `Unknown tool: ${name}` };
       const parsed = spec.schema.safeParse(input);
       if (!parsed.success) return { status: 'error', errorType: 'bad_input', message: parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ') };
+      const plannerCallKey = name === 'calendar_day_planner' ? JSON.stringify(parsed.data) : undefined;
+      if (plannerCallKey && failedPlannerCalls.has(plannerCallKey)) return { status: 'error', errorType: 'bad_input', message: 'Identical to an earlier failed call. Change flightId, lodgingId, pace or activityIds as suggested, or call ask_clarification.' };
       try { return { status: 'success', data: await spec.run(parsed.data) }; }
       catch (error) {
+        if (plannerCallKey) failedPlannerCalls.add(plannerCallKey);
         const issue = error as Error & { errorType?: 'bad_input' | 'no_results' | 'over_budget' | 'internal'; details?: unknown };
         return { status: 'error', errorType: issue.errorType ?? 'internal', message: issue.message || 'Tool failed', ...(issue.details ? { details: issue.details } : {}) };
       }

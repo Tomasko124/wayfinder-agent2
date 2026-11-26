@@ -164,3 +164,25 @@ it('returns bad_input for unknown tools and malformed tool inputs', async () => 
   expect(await box.execute('missing', {})).toMatchObject({ status: 'error', errorType: 'bad_input' });
   expect(await box.execute('weather_lookup', {})).toMatchObject({ status: 'error', errorType: 'bad_input' });
 });
+
+describe('planner budget recovery', () => {
+  const copenhagenRequest = { destination: 'Copenhagen', startDate: '2026-07-06', endDate: '2026-07-08', budget: 600, pace: 'balanced', interests: ['design', 'architecture'], dietary: 'vegetarian', flightId: 'cph-flight-saver', lodgingId: 'cph-budget' };
+
+  it('suggests the fitting slow-pace cheapest Copenhagen plan in the error details and message', async () => {
+    const result = await createToolbox().execute('calendar_day_planner', copenhagenRequest);
+    expect(result).toMatchObject({ status: 'error', errorType: 'over_budget', details: { suggestions: [{ pace: 'slow', flightId: 'cph-flight-saver', lodgingId: 'cph-budget', estimated: 569 }] } });
+    if (result.status === 'error') expect(result.message).toContain('Try pace=slow with flightId=cph-flight-saver and lodgingId=cph-budget (estimated €569).');
+  });
+
+  it('rejects an identical call after its earlier budget failure', async () => {
+    const box = createToolbox();
+    expect(await box.execute('calendar_day_planner', copenhagenRequest)).toMatchObject({ status: 'error', errorType: 'over_budget' });
+    expect(await box.execute('calendar_day_planner', copenhagenRequest)).toMatchObject({ status: 'error', errorType: 'bad_input', message: 'Identical to an earlier failed call. Change flightId, lodgingId, pace or activityIds as suggested, or call ask_clarification.' });
+  });
+
+  it('returns no suggestions and requests clarification when no pace fits', async () => {
+    const result = await createToolbox().execute('calendar_day_planner', { ...copenhagenRequest, budget: 200 });
+    expect(result).toMatchObject({ status: 'error', errorType: 'over_budget', details: { suggestions: [] } });
+    if (result.status === 'error') expect(result.message).toContain('call ask_clarification and ask the user to raise the budget or shorten the trip.');
+  });
+});

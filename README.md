@@ -59,6 +59,10 @@ npm run traces
 
 Inputs contain destination, inclusive trip dates, a one-traveller EUR budget, and pace/interests/dietary preferences. Trips are validated for real calendar dates and must span 2-7 days.
 
+## Error handling and replanning
+
+Requests are validated before any LLM call. Tool errors are returned to the model as tool results for replanning. When a planner call exceeds budget, its error includes estimates for cheaper pace/flight/lodging combinations that fit, ordered from the requested pace down. If none fit, the message directs the agent to ask for clarification. A per-run guard rejects an identical planner input after failure so the model must change its choices or ask the user.
+
 ## Traces
 
 Run `npm run traces` to generate JSON and Markdown trace pairs for all four examples. The generator writes provider/model metadata into each file and checks the required outcomes. Local Ollama is the default trace provider and model (`openai-compatible`, `qwen2.5:7b`); generated files record the provider/model actually used.

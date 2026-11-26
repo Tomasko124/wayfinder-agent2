@@ -16,7 +16,7 @@ export type AgentResult =
   | { status: 'needs_clarification'; question: string; trace: Trace }
   | { status: 'failed'; reason: 'max_iterations' | 'llm_error' | 'no_terminal_tool'; message: string; trace: Trace };
 
-const system = `You are a travel-planner agent. Gather weather, flights, lodging, and attractions first (independent tool calls together). Select affordable options leaving room for activities and allowance; use calendar_day_planner. On over_budget, choose cheaper options or slower pace and retry. On bad_input fix arguments. On no_results relax constraints or ask one concise clarification if destination unsupported or budget below minimumPossible. Never invent prices or ids. Always finish with submit_itinerary or ask_clarification, never plain text.`;
+const system = `You are a travel-planner agent. Gather weather, flights, lodging, and attractions first (independent tool calls together). Select affordable options leaving room for activities and allowance; use calendar_day_planner. If calendar_day_planner returns over_budget, follow the suggestion in the error message. Never repeat an identical call. Prefer lowering the pace with the cheapest flight and lodging over giving up. If the error says nothing fits, call ask_clarification. On bad_input fix arguments. On no_results relax constraints or ask one concise clarification if destination unsupported or budget below minimumPossible. Never invent prices or ids. Always finish with submit_itinerary or ask_clarification, never plain text.`;
 
 export async function runAgent(request: unknown, options: { llm: LLMClient; maxIterations?: number; maxTokens?: number; onEvent?: (event: TraceEvent) => void }): Promise<AgentResult> {
   const trace: Trace = [];
