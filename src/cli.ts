@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import { runAgent } from './agent.js';
-import { AnthropicClient } from './llm-anthropic.js';
+import { createLlmClient } from './llm.js';
 
 const file = process.argv[2];
 if (!file) {
@@ -10,8 +10,9 @@ if (!file) {
 } else {
   try {
     const request = JSON.parse(await readFile(file, 'utf8'));
+    const { client } = createLlmClient();
     const result = await runAgent(request, {
-      llm: new AnthropicClient(),
+      llm: client,
       onEvent: (event) => console.log(`[${event.iteration}] ${event.type}${event.tool ? `: ${event.tool}` : ''}`),
     });
     console.log(JSON.stringify(result, null, 2));

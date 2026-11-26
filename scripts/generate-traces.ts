@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { runAgent } from '../src/agent.js';
-import { AnthropicClient } from '../src/llm-anthropic.js';
+import { createLlmClient } from '../src/llm.js';
 import { renderTraceMarkdown } from '../src/trace.js';
 
 const cases = [
@@ -14,10 +14,13 @@ const cases = [
 await mkdir('traces', { recursive: true });
 for (const [name, file] of cases) {
   const request = JSON.parse(await readFile(file, 'utf8'));
-  const result = await runAgent(request, { llm: new AnthropicClient() });
+  const { client, provider, model } = createLlmClient();
+  const llm = { provider, model };
+  const result = await runAgent(request, { llm: client });
+  const tracedResult = { ...result, llm };
 
-  await writeFile(`traces/${name}.json`, JSON.stringify(result, null, 2) + '\n');
-  await writeFile(`traces/${name}.md`, renderTraceMarkdown(name, result.trace, result.status) + '\n');
+  await writeFile(`traces/${name}.json`, JSON.stringify(tracedResult, null, 2) + '\n');
+  await writeFile(`traces/${name}.md`, renderTraceMarkdown(name, result.trace, result.status, llm) + '\n');
   console.log(`${name}: ${result.status}`);
 
   if (name.startsWith('01') && result.status !== 'success') throw new Error(`Run 01 failed: expected success status, received ${result.status}.`);

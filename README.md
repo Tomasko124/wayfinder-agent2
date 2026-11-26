@@ -1,101 +1,83 @@
 # Wayfinder Agent
 
-A plain TypeScript CLI travel-planner agent for Lisbon, Kyoto, and Copenhagen. It validates requests, gathers deterministic mock travel data through tools, replans on tool errors, and submits a budget-checked itinerary whose prices are fixed by per-run toolbox state.
+A plain TypeScript CLI travel-planner agent for Lisbon, Kyoto, and Copenhagen. It uses deterministic mock travel tools and an explicit, bounded agent loop. The default LLM option is free: run Ollama locally, or use a free-tier OpenAI-compatible service such as Groq. No paid service is required.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-  A[JSON request] --> B[Zod validation]
-  B -->|invalid| C[Clarification result]
+  A[JSON travel request] --> B[Validate request with Zod]
+  B -->|invalid| C[needs_clarification]
   B --> D[LLMClient.complete]
   D --> E{tool-use blocks?}
   E -->|yes| F[Execute each tool call]
-  F --> G[Append tool results]
+  F --> G[Append tool_result messages]
   G --> D
-  E -->|plain text| H[Nudge, at most twice]
+  E -->|plain text| H[Nudge at most twice]
   H --> D
-  F -->|submit_itinerary| I[Resolve stored plan, validate output]
-  F -->|ask_clarification| J[Clarification result]
-  D -->|error / iteration cap| K[Failed result]
+  F -->|submit_itinerary| I[Resolve stored plan and validate]
+  F -->|ask_clarification| J[needs_clarification]
+  D -->|provider error / iteration cap| K[failed]
 ```
 
-`src/agent.ts` contains the explicit bounded loop and depends only on the `LLMClient` interface, not an LLM framework. `src/llm-anthropic.ts` adapts the Anthropic SDK. `createToolbox()` creates per-run plan storage. `calendar_day_planner` calculates the plan and budget; `submit_itinerary` can add summary and tips but cannot change stored prices or totals.
+`src/agent.ts` contains the provider-independent tool-calling loop. `src/llm.ts` selects the free OpenAI-compatible adapter by default or Anthropic when explicitly configured. `src/openai-compatible.ts` uses plain `fetch` and supports Ollama and compatible endpoints; `src/llm-anthropic.ts` is optional. The deterministic tools have per-run state, and the planner stores prices so the submitted itinerary cannot change totals.
 
-## Tools
+## Free setup: Ollama (local)
 
-| Tool | Input | Output | Possible errors |
-|---|---|---|---|
-| `weather_lookup` | destination, startDate, endDate | deterministic forecast per date | bad_input, no_results |
-| `flight_price_lookup` | origin?, destination, dates, maxPrice? | three city-specific fare tiers | bad_input, no_results |
-| `lodging_lookup` | destination, dates, maxNightlyRate? | lodging options and stay totals | bad_input, no_results |
-| `attractions_lookup` | destination, interests, dietary, pace?, indoorOnly? | activities ranked by interest | bad_input, no_results |
-| `calendar_day_planner` | destination, dates, budget, pace, interests, dietary, flightId, lodgingId, activityIds? | stored plan ID and estimate | bad_input, no_results, over_budget |
-| `ask_clarification` | question | terminal clarification | bad_input |
-| `submit_itinerary` | planId, summary, tips | validated stored itinerary | bad_input |
+1. Install [Ollama](https://ollama.com/download) for your computer and start it.
+2. In a terminal, download the model with `ollama pull qwen2.5:7b`.
+3. Install the project dependencies with `npm install`.
+4. Copy `.env.example` to `.env` if you want to customize the defaults. No API key or paid service is needed for local Ollama.
 
-All tools validate arguments with Zod and return a `{status: success|error}` envelope. Destination matching is case-insensitive; unsupported destinations report supported cities. Weather lookup and itinerary planning use the same deterministic forecast function. The planner ranks by interest and time of day, favors indoor activities on rain days, and filters food by realistic dietary tags.
+Default connection settings are `LLM_BASE_URL=http://localhost:11434/v1` and `LLM_MODEL=qwen2.5:7b`.
 
-## Setup
+### Free hosted alternative: Groq
 
-Requires Node.js 20 or newer.
+Create a free developer account with [Groq](https://console.groq.com/), choose a model supported by its OpenAI-compatible API, then configure `LLM_BASE_URL=https://api.groq.com/openai/v1`, `LLM_MODEL` to the chosen model identifier, and `LLM_API_KEY` to your Groq key. Keep the key in `.env`, not in source files. Groq's free-tier limits can change.
+
+### Optional Anthropic provider
+
+Anthropic is not needed for this project to run. To select it, set `LLM_PROVIDER=anthropic` and configure `ANTHROPIC_API_KEY`; this is a separate, potentially paid provider.
+
+## Commands
 
 ```sh
 npm install
-cp .env.example .env
-```
-
-Set `ANTHROPIC_API_KEY` in `.env`. Default model: `claude-sonnet-5-5`; override it with `ANTHROPIC_MODEL`.
-
-## Run
-
-```sh
-npm run agent -- examples/lisbon-slow.json
-npm run typecheck
 npm test
+npm run agent -- examples/lisbon-slow.json
 npm run traces
 ```
 
-The CLI prints a short progress line for each trace event, then the complete result JSON. The CLI request JSON contains `origin` (defaults to `PRG`), `destination`, `startDate`, `endDate`, `budget` (EUR, one traveller), and `preferences` (`pace`: slow/balanced/full, `interests`: string array, `dietary`: string defaulting to none). Dates must be valid `YYYY-MM-DD`; trips span 2-7 inclusive calendar days.
+`npm run typecheck` is also available. The CLI prints progress lines for trace events and then prints the result JSON.
 
 ## Example inputs
 
-- [Lisbon, slow pace](examples/lisbon-slow.json)
-- [Kyoto, balanced pace](examples/kyoto-balanced.json)
-- [Copenhagen, tight budget](examples/copenhagen-tight-budget.json) (budget €620)
-- [Unsupported destination](examples/unknown-destination.json)
+- [Lisbon slow pace](examples/lisbon-slow.json)
+- [Kyoto balanced pace](examples/kyoto-balanced.json)
+- [Copenhagen tight budget](examples/copenhagen-tight-budget.json)
+- [Unknown destination](examples/unknown-destination.json)
 
-## Error handling and replanning
-
-Requests are validated before any LLM call. Tool errors are returned to the model as tool results, allowing it to correct bad arguments, relax constraints, or select cheaper options. Budget errors include an estimate, overage, breakdown, and minimum possible estimate. The loop is bounded to 12 iterations by default; plain-text-only replies receive two nudges before returning `no_terminal_tool`. The agent finishes with either `submit_itinerary` or `ask_clarification` when the model uses a terminal tool.
-
-The budget (600 EUR) is below the cost of the cheapest balanced-pace plan (616 EUR), so the first plan is over budget and the agent has to replan or ask a clarifying question.
+Inputs contain destination, inclusive trip dates, a one-traveller EUR budget, and pace/interests/dietary preferences. Trips are validated for real calendar dates and must span 2-7 days.
 
 ## Traces
 
-`npm run traces` calls the configured Anthropic model for the four examples and writes paired JSON and Markdown files under `traces/`. It validates the expected run outcomes and error/replanning sequence. Trace files are generated from real model runs, not edited by hand; an API key is required.
+Run `npm run traces` to generate JSON and Markdown trace pairs for all four examples. The generator writes provider/model metadata into each file and checks the required outcomes. Local Ollama is the default trace provider and model (`openai-compatible`, `qwen2.5:7b`); generated files record the provider/model actually used.
+
+- [01 Lisbon slow JSON](traces/01-lisbon-slow.json) · [Markdown](traces/01-lisbon-slow.md)
+- [02 Kyoto balanced JSON](traces/02-kyoto-balanced.json) · [Markdown](traces/02-kyoto-balanced.md)
+- [03 Copenhagen budget replanning JSON](traces/03-copenhagen-tight-budget.json) · [Markdown](traces/03-copenhagen-tight-budget.md)
+- [04 Unsupported destination clarification JSON](traces/04-unknown-destination.json) · [Markdown](traces/04-unknown-destination.md)
+
+Runs 01 and 02 must succeed. Run 03 checks that an `over_budget` planner result appears before a successful final event; run 04 must request clarification. Trace files are generated from real model calls; do not hand-edit them.
 
 ## Tests
 
-`npm test` uses a scripted fake LLM, so no API key is needed. It covers weather determinism, destination-specific flights, unsupported destination errors, trip-date validation, budget checks, stored-plan integrity, pace, rainy-day preferences, interest ranking, dietary filtering, clarification and success terminals, retries, iteration cap, and provider failures.
+`npm test` uses a scripted fake LLM and mocked `fetch` tests, with no API key and no network requests. It covers tool behavior and agent control flow as well as OpenAI-compatible request/message/tool conversion, tool-call parsing, stop reasons, and sanitized HTTP errors.
 
 ## Limitations
 
-- Travel, weather, and prices are deterministic mock data, not live availability.
+- Travel, lodging, weather, and prices are deterministic mock data, not live availability.
 - One traveller and EUR only.
-- Arrival/departure times and booking are not modeled; activity slots are suggestions.
-- Supported destinations: Lisbon, Kyoto, and Copenhagen.
-- Dietary tags are mock metadata, not a guarantee against allergens or cross-contamination.
-
-## Project files
-
-- `src/dates.ts`, `src/types.ts`: date helpers and structured schemas.
-- `src/data.ts`: destination catalogs and shared deterministic weather.
-- `src/tools.ts`: tools and per-run plan store.
-- `src/agent.ts`: explicit injectable tool-calling loop.
-- `src/llm-anthropic.ts`: Anthropic adapter.
-- `src/trace.ts`: trace types and Markdown renderer.
-- `src/cli.ts`: CLI entry point.
-- `scripts/generate-traces.ts`: required generated trace runs.
-- `tests/agent.test.ts`: tests with scripted fake LLM.
-- `examples/`: sample requests.
+- Arrival/departure times are not modeled; activity time slots are suggestions.
+- Supported destinations are Lisbon, Kyoto, and Copenhagen.
+- Dietary tags are mock metadata, not a guarantee about allergens or cross-contamination.

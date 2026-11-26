@@ -1,0 +1,36 @@
+{
+  "status": "failed",
+  "reason": "llm_error",
+  "message": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011ChRNuyoQ86zfp3fro8VDe\"}",
+  "trace": [
+    {
+      "iteration": 0,
+      "type": "request",
+      "input": {
+        "origin": "PRG",
+        "destination": "Lisbon",
+        "startDate": "2026-05-10",
+        "endDate": "2026-05-12",
+        "budget": 900,
+        "preferences": {
+          "pace": "slow",
+          "interests": [
+            "history",
+            "walking"
+          ],
+          "dietary": "vegetarian"
+        }
+      },
+      "seq": 1,
+      "timestamp": "2026-11-26T10:25:57.854Z"
+    },
+    {
+      "iteration": 1,
+      "type": "failed",
+      "output": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011ChRNuyoQ86zfp3fro8VDe\"}",
+      "durationMs": 621.16175,
+      "seq": 2,
+      "timestamp": "2026-11-26T10:25:58.477Z"
+    }
+  ]
+}
