@@ -163,11 +163,13 @@
       "Free-time items cost €0 and are excluded from activity spend.",
       "Activity times are suggested slots; arrival and departure times are not modeled."
     ],
-    "summary": "Your balanced itinerary in Kyoto includes visits to Fushimi Inari Shrine, Nishiki Market, and the bamboo grove at Arashiyama. Enjoy a vegetarian soba lunch and explore the history and culture of Kyoto.",
+    "summary": "Balanced itinerary for Kyoto with a budget of 1100 EUR.",
     "tips": [
-      "Consider purchasing a Kyoto City Bus Pass for convenient transportation.",
-      "Visit the Fushimi Inari Shrine early in the morning to avoid crowds.",
-      "Try the local vegetarian dishes at Nishiki Market for a taste of Kyoto's culinary scene."
+      "Enjoy the morning at Fushimi Inari Shrine, followed by a traditional tea ceremony in the afternoon.",
+      "Explore the Nishiki Market for a vegetarian lunch and local crafts.",
+      "Visit the Arashiyama Bamboo Grove and Kiyomizu Pottery Workshop in the morning.",
+      "Relax in the Zen Garden Meditation or stroll along the Kamogawa River in the evening.",
+      "End your trip with a visit to the Kinkaku-ji Temple and a vegetarian soba lunch."
     ]
   },
   "trace": [
@@ -190,7 +192,7 @@
         }
       },
       "seq": 1,
-      "timestamp": "2026-11-26T16:13:55.740Z"
+      "timestamp": "2026-11-26T23:02:22.085Z"
     },
     {
       "iteration": 1,
@@ -202,13 +204,13 @@
         "lodging_lookup",
         "attractions_lookup"
       ],
-      "durationMs": 10919.309084000004,
+      "durationMs": 10475.102249999996,
       "usage": {
-        "input_tokens": 793,
-        "output_tokens": 229
+        "input_tokens": 830,
+        "output_tokens": 219
       },
       "seq": 2,
-      "timestamp": "2026-11-26T16:14:06.661Z"
+      "timestamp": "2026-11-26T23:02:32.562Z"
     },
     {
       "iteration": 1,
@@ -220,7 +222,7 @@
         "endDate": "2026-06-04"
       },
       "seq": 3,
-      "timestamp": "2026-11-26T16:14:06.661Z"
+      "timestamp": "2026-11-26T23:02:32.562Z"
     },
     {
       "iteration": 1,
@@ -257,21 +259,20 @@
       },
       "isError": false,
       "seq": 4,
-      "timestamp": "2026-11-26T16:14:06.662Z"
+      "timestamp": "2026-11-26T23:02:32.563Z"
     },
     {
       "iteration": 1,
       "type": "tool_call",
       "tool": "flight_price_lookup",
       "input": {
-        "origin": "PRG",
         "destination": "Kyoto",
         "startDate": "2026-06-02",
         "endDate": "2026-06-04",
-        "maxPrice": 1100
+        "origin": "PRG"
       },
       "seq": 5,
-      "timestamp": "2026-11-26T16:14:06.662Z"
+      "timestamp": "2026-11-26T23:02:32.563Z"
     },
     {
       "iteration": 1,
@@ -305,20 +306,20 @@
       },
       "isError": false,
       "seq": 6,
-      "timestamp": "2026-11-26T16:14:06.663Z"
+      "timestamp": "2026-11-26T23:02:32.564Z"
     },
     {
       "iteration": 1,
       "type": "tool_call",
       "tool": "lodging_lookup",
       "input": {
+        "maxNightlyRate": 300,
         "destination": "Kyoto",
         "startDate": "2026-06-02",
-        "endDate": "2026-06-04",
-        "maxNightlyRate": 300
+        "endDate": "2026-06-04"
       },
       "seq": 7,
-      "timestamp": "2026-11-26T16:14:06.663Z"
+      "timestamp": "2026-11-26T23:02:32.564Z"
     },
     {
       "iteration": 1,
@@ -358,7 +359,7 @@
       },
       "isError": false,
       "seq": 8,
-      "timestamp": "2026-11-26T16:14:06.663Z"
+      "timestamp": "2026-11-26T23:02:32.565Z"
     },
     {
       "iteration": 1,
@@ -374,7 +375,7 @@
         "pace": "balanced"
       },
       "seq": 9,
-      "timestamp": "2026-11-26T16:14:06.663Z"
+      "timestamp": "2026-11-26T23:02:32.565Z"
     },
     {
       "iteration": 1,
@@ -575,7 +576,7 @@
       },
       "isError": false,
       "seq": 10,
-      "timestamp": "2026-11-26T16:14:06.664Z"
+      "timestamp": "2026-11-26T23:02:32.566Z"
     },
     {
       "iteration": 2,
@@ -584,34 +585,34 @@
       "output": [
         "calendar_day_planner"
       ],
-      "durationMs": 10080.292042000001,
+      "durationMs": 10857.355750000002,
       "usage": {
-        "input_tokens": 2020,
-        "output_tokens": 89
+        "input_tokens": 2049,
+        "output_tokens": 107
       },
       "seq": 11,
-      "timestamp": "2026-11-26T16:14:16.744Z"
+      "timestamp": "2026-11-26T23:02:43.423Z"
     },
     {
       "iteration": 2,
       "type": "tool_call",
       "tool": "calendar_day_planner",
       "input": {
-        "endDate": "2026-06-04",
+        "pace": "balanced",
+        "dietary": "vegetarian",
+        "flightId": "kyo-flight-saver",
+        "lodgingId": "kyoto-budget",
+        "startDate": "2026-06-02",
         "budget": 1100,
         "interests": [
           "culture",
           "nature"
         ],
-        "flightId": "kyo-flight-saver",
-        "startDate": "2026-06-02",
-        "pace": "balanced",
-        "dietary": "vegetarian",
-        "lodgingId": "kyoto-budget",
-        "destination": "Kyoto"
+        "destination": "Kyoto",
+        "endDate": "2026-06-04"
       },
       "seq": 12,
-      "timestamp": "2026-11-26T16:14:16.744Z"
+      "timestamp": "2026-11-26T23:02:43.423Z"
     },
     {
       "iteration": 2,
@@ -630,7 +631,7 @@
       },
       "isError": false,
       "seq": 13,
-      "timestamp": "2026-11-26T16:14:16.747Z"
+      "timestamp": "2026-11-26T23:02:43.426Z"
     },
     {
       "iteration": 3,
@@ -639,13 +640,13 @@
       "output": [
         "submit_itinerary"
       ],
-      "durationMs": 6773.928583000001,
+      "durationMs": 7586.582083000001,
       "usage": {
-        "input_tokens": 2161,
-        "output_tokens": 128
+        "input_tokens": 2190,
+        "output_tokens": 149
       },
       "seq": 14,
-      "timestamp": "2026-11-26T16:14:23.521Z"
+      "timestamp": "2026-11-26T23:02:51.013Z"
     },
     {
       "iteration": 3,
@@ -653,15 +654,17 @@
       "tool": "submit_itinerary",
       "input": {
         "planId": "plan-1",
-        "summary": "Your balanced itinerary in Kyoto includes visits to Fushimi Inari Shrine, Nishiki Market, and the bamboo grove at Arashiyama. Enjoy a vegetarian soba lunch and explore the history and culture of Kyoto.",
+        "summary": "Balanced itinerary for Kyoto with a budget of 1100 EUR.",
         "tips": [
-          "Consider purchasing a Kyoto City Bus Pass for convenient transportation.",
-          "Visit the Fushimi Inari Shrine early in the morning to avoid crowds.",
-          "Try the local vegetarian dishes at Nishiki Market for a taste of Kyoto's culinary scene."
+          "Enjoy the morning at Fushimi Inari Shrine, followed by a traditional tea ceremony in the afternoon.",
+          "Explore the Nishiki Market for a vegetarian lunch and local crafts.",
+          "Visit the Arashiyama Bamboo Grove and Kiyomizu Pottery Workshop in the morning.",
+          "Relax in the Zen Garden Meditation or stroll along the Kamogawa River in the evening.",
+          "End your trip with a visit to the Kinkaku-ji Temple and a vegetarian soba lunch."
         ]
       },
       "seq": 15,
-      "timestamp": "2026-11-26T16:14:23.521Z"
+      "timestamp": "2026-11-26T23:02:51.013Z"
     },
     {
       "iteration": 3,
@@ -832,17 +835,19 @@
             "Free-time items cost €0 and are excluded from activity spend.",
             "Activity times are suggested slots; arrival and departure times are not modeled."
           ],
-          "summary": "Your balanced itinerary in Kyoto includes visits to Fushimi Inari Shrine, Nishiki Market, and the bamboo grove at Arashiyama. Enjoy a vegetarian soba lunch and explore the history and culture of Kyoto.",
+          "summary": "Balanced itinerary for Kyoto with a budget of 1100 EUR.",
           "tips": [
-            "Consider purchasing a Kyoto City Bus Pass for convenient transportation.",
-            "Visit the Fushimi Inari Shrine early in the morning to avoid crowds.",
-            "Try the local vegetarian dishes at Nishiki Market for a taste of Kyoto's culinary scene."
+            "Enjoy the morning at Fushimi Inari Shrine, followed by a traditional tea ceremony in the afternoon.",
+            "Explore the Nishiki Market for a vegetarian lunch and local crafts.",
+            "Visit the Arashiyama Bamboo Grove and Kiyomizu Pottery Workshop in the morning.",
+            "Relax in the Zen Garden Meditation or stroll along the Kamogawa River in the evening.",
+            "End your trip with a visit to the Kinkaku-ji Temple and a vegetarian soba lunch."
           ]
         }
       },
       "isError": false,
       "seq": 16,
-      "timestamp": "2026-11-26T16:14:23.521Z"
+      "timestamp": "2026-11-26T23:02:51.014Z"
     },
     {
       "iteration": 3,
@@ -1011,15 +1016,17 @@
           "Free-time items cost €0 and are excluded from activity spend.",
           "Activity times are suggested slots; arrival and departure times are not modeled."
         ],
-        "summary": "Your balanced itinerary in Kyoto includes visits to Fushimi Inari Shrine, Nishiki Market, and the bamboo grove at Arashiyama. Enjoy a vegetarian soba lunch and explore the history and culture of Kyoto.",
+        "summary": "Balanced itinerary for Kyoto with a budget of 1100 EUR.",
         "tips": [
-          "Consider purchasing a Kyoto City Bus Pass for convenient transportation.",
-          "Visit the Fushimi Inari Shrine early in the morning to avoid crowds.",
-          "Try the local vegetarian dishes at Nishiki Market for a taste of Kyoto's culinary scene."
+          "Enjoy the morning at Fushimi Inari Shrine, followed by a traditional tea ceremony in the afternoon.",
+          "Explore the Nishiki Market for a vegetarian lunch and local crafts.",
+          "Visit the Arashiyama Bamboo Grove and Kiyomizu Pottery Workshop in the morning.",
+          "Relax in the Zen Garden Meditation or stroll along the Kamogawa River in the evening.",
+          "End your trip with a visit to the Kinkaku-ji Temple and a vegetarian soba lunch."
         ]
       },
       "seq": 17,
-      "timestamp": "2026-11-26T16:14:23.522Z"
+      "timestamp": "2026-11-26T23:02:51.014Z"
     }
   ],
   "llm": {

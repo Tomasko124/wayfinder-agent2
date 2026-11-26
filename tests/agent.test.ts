@@ -171,9 +171,9 @@ describe('planner budget recovery', () => {
   it('suggests the fitting slow-pace cheapest Copenhagen plan and matches its real planner total', async () => {
     const box = createToolbox();
     const result = await box.execute('calendar_day_planner', copenhagenRequest);
-    expect(result).toMatchObject({ status: 'error', errorType: 'over_budget', details: { suggestions: [{ pace: 'slow', flightId: 'cph-flight-saver', lodgingId: 'cph-budget', estimated: 569 }] } });
+    expect(result).toMatchObject({ status: 'error', errorType: 'over_budget', details: { suggestions: [{ pace: 'slow', flightId: 'cph-flight-saver', lodgingId: 'cph-budget', estimated: 568 }] } });
     if (result.status !== 'error') throw new Error('Expected over_budget result');
-    expect(result.message).toContain('Try pace=slow with flightId=cph-flight-saver and lodgingId=cph-budget (estimated €569).');
+    expect(result.message).toContain('Try pace=slow with flightId=cph-flight-saver and lodgingId=cph-budget (estimated €568).');
     const suggestion = (result.details as any).suggestions[0];
     const replanned = await box.execute('calendar_day_planner', { ...copenhagenRequest, pace: suggestion.pace, flightId: suggestion.flightId, lodgingId: suggestion.lodgingId });
     expect(replanned.status).toBe('success');

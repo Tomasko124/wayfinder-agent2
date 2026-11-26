@@ -133,12 +133,11 @@
       "Free-time items cost €0 and are excluded from activity spend.",
       "Activity times are suggested slots; arrival and departure times are not modeled."
     ],
-    "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities.",
+    "summary": "Day 1: Arrive in Lisbon, stay at Casa do Bairro. Day 2: Alfama walking tour in the morning, visit the National Tile Museum in the afternoon. Day 3: Departure.",
     "tips": [
-      "Enjoy the morning at the Bertrand bookshop for a cultural start.",
-      "Take a leisurely walk in the Alfama district for history and walking.",
-      "Visit the National Tile Museum in the afternoon for a history lesson.",
-      "End your day with a traditional Pastel de nata tasting."
+      "Enjoy the local vegetarian cuisine at the Time Out Market.",
+      "Take a leisurely tram ride in the morning.",
+      "Visit the Bertrand bookshop for a cultural experience."
     ]
   },
   "trace": [
@@ -161,87 +160,37 @@
         }
       },
       "seq": 1,
-      "timestamp": "2026-11-26T16:13:28.803Z"
+      "timestamp": "2026-11-26T23:01:52.720Z"
     },
     {
       "iteration": 1,
       "type": "llm_turn",
       "text": "",
       "output": [
-        "weather_lookup",
         "flight_price_lookup",
         "lodging_lookup",
         "attractions_lookup"
       ],
-      "durationMs": 10424.658916,
+      "durationMs": 14636.950625,
       "usage": {
-        "input_tokens": 793,
-        "output_tokens": 223
+        "input_tokens": 830,
+        "output_tokens": 171
       },
       "seq": 2,
-      "timestamp": "2026-11-26T16:13:39.229Z"
-    },
-    {
-      "iteration": 1,
-      "type": "tool_call",
-      "tool": "weather_lookup",
-      "input": {
-        "destination": "Lisbon",
-        "startDate": "2026-05-10",
-        "endDate": "2026-05-12"
-      },
-      "seq": 3,
-      "timestamp": "2026-11-26T16:13:39.229Z"
-    },
-    {
-      "iteration": 1,
-      "type": "tool_result",
-      "tool": "weather_lookup",
-      "output": {
-        "status": "success",
-        "data": [
-          {
-            "date": "2026-05-10",
-            "condition": "Sunny",
-            "high": 17,
-            "low": 10,
-            "rainChance": 11,
-            "rainy": false
-          },
-          {
-            "date": "2026-05-11",
-            "condition": "Cloudy",
-            "high": 18,
-            "low": 11,
-            "rainChance": 28,
-            "rainy": false
-          },
-          {
-            "date": "2026-05-12",
-            "condition": "Cloudy",
-            "high": 19,
-            "low": 12,
-            "rainChance": 45,
-            "rainy": false
-          }
-        ]
-      },
-      "isError": false,
-      "seq": 4,
-      "timestamp": "2026-11-26T16:13:39.230Z"
+      "timestamp": "2026-11-26T23:02:07.358Z"
     },
     {
       "iteration": 1,
       "type": "tool_call",
       "tool": "flight_price_lookup",
       "input": {
-        "origin": "PRG",
         "destination": "Lisbon",
         "startDate": "2026-05-10",
-        "endDate": "2026-05-12"
+        "endDate": "2026-05-12",
+        "origin": "PRG"
       },
-      "seq": 5,
-      "timestamp": "2026-11-26T16:13:39.230Z"
+      "seq": 3,
+      "timestamp": "2026-11-26T23:02:07.358Z"
     },
     {
       "iteration": 1,
@@ -274,21 +223,21 @@
         ]
       },
       "isError": false,
-      "seq": 6,
-      "timestamp": "2026-11-26T16:13:39.231Z"
+      "seq": 4,
+      "timestamp": "2026-11-26T23:02:07.360Z"
     },
     {
       "iteration": 1,
       "type": "tool_call",
       "tool": "lodging_lookup",
       "input": {
-        "maxNightlyRate": 300,
         "destination": "Lisbon",
         "startDate": "2026-05-10",
-        "endDate": "2026-05-12"
+        "endDate": "2026-05-12",
+        "maxNightlyRate": 300
       },
-      "seq": 7,
-      "timestamp": "2026-11-26T16:13:39.231Z"
+      "seq": 5,
+      "timestamp": "2026-11-26T23:02:07.360Z"
     },
     {
       "iteration": 1,
@@ -327,8 +276,8 @@
         ]
       },
       "isError": false,
-      "seq": 8,
-      "timestamp": "2026-11-26T16:13:39.232Z"
+      "seq": 6,
+      "timestamp": "2026-11-26T23:02:07.361Z"
     },
     {
       "iteration": 1,
@@ -343,8 +292,8 @@
         "dietary": "vegetarian",
         "pace": "slow"
       },
-      "seq": 9,
-      "timestamp": "2026-11-26T16:13:39.232Z"
+      "seq": 7,
+      "timestamp": "2026-11-26T23:02:07.361Z"
     },
     {
       "iteration": 1,
@@ -542,8 +491,8 @@
         ]
       },
       "isError": false,
-      "seq": 10,
-      "timestamp": "2026-11-26T16:13:39.232Z"
+      "seq": 8,
+      "timestamp": "2026-11-26T23:02:07.362Z"
     },
     {
       "iteration": 2,
@@ -552,34 +501,34 @@
       "output": [
         "calendar_day_planner"
       ],
-      "durationMs": 10661.228749999998,
+      "durationMs": 8856.287250000001,
       "usage": {
-        "input_tokens": 1994,
-        "output_tokens": 105
+        "input_tokens": 1850,
+        "output_tokens": 87
       },
-      "seq": 11,
-      "timestamp": "2026-11-26T16:13:49.894Z"
+      "seq": 9,
+      "timestamp": "2026-11-26T23:02:16.218Z"
     },
     {
       "iteration": 2,
       "type": "tool_call",
       "tool": "calendar_day_planner",
       "input": {
+        "dietary": "vegetarian",
+        "flightId": "lis-flight-standard",
+        "lodgingId": "lisbon-budget",
+        "destination": "Lisbon",
+        "startDate": "2026-05-10",
         "budget": 900,
         "pace": "slow",
+        "endDate": "2026-05-12",
         "interests": [
           "history",
           "walking"
-        ],
-        "flightId": "lis-flight-standard",
-        "destination": "Lisbon",
-        "startDate": "2026-05-10",
-        "endDate": "2026-05-12",
-        "dietary": "vegetarian",
-        "lodgingId": "lisbon-budget"
+        ]
       },
-      "seq": 12,
-      "timestamp": "2026-11-26T16:13:49.894Z"
+      "seq": 10,
+      "timestamp": "2026-11-26T23:02:16.218Z"
     },
     {
       "iteration": 2,
@@ -597,8 +546,8 @@
         }
       },
       "isError": false,
-      "seq": 13,
-      "timestamp": "2026-11-26T16:13:49.900Z"
+      "seq": 11,
+      "timestamp": "2026-11-26T23:02:16.225Z"
     },
     {
       "iteration": 3,
@@ -607,30 +556,29 @@
       "output": [
         "submit_itinerary"
       ],
-      "durationMs": 5834.930084,
+      "durationMs": 5854.507207999999,
       "usage": {
-        "input_tokens": 2133,
-        "output_tokens": 111
+        "input_tokens": 1989,
+        "output_tokens": 112
       },
-      "seq": 14,
-      "timestamp": "2026-11-26T16:13:55.735Z"
+      "seq": 12,
+      "timestamp": "2026-11-26T23:02:22.079Z"
     },
     {
       "iteration": 3,
       "type": "tool_call",
       "tool": "submit_itinerary",
       "input": {
-        "tips": [
-          "Enjoy the morning at the Bertrand bookshop for a cultural start.",
-          "Take a leisurely walk in the Alfama district for history and walking.",
-          "Visit the National Tile Museum in the afternoon for a history lesson.",
-          "End your day with a traditional Pastel de nata tasting."
-        ],
         "planId": "plan-1",
-        "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities."
+        "summary": "Day 1: Arrive in Lisbon, stay at Casa do Bairro. Day 2: Alfama walking tour in the morning, visit the National Tile Museum in the afternoon. Day 3: Departure.",
+        "tips": [
+          "Enjoy the local vegetarian cuisine at the Time Out Market.",
+          "Take a leisurely tram ride in the morning.",
+          "Visit the Bertrand bookshop for a cultural experience."
+        ]
       },
-      "seq": 15,
-      "timestamp": "2026-11-26T16:13:55.735Z"
+      "seq": 13,
+      "timestamp": "2026-11-26T23:02:22.080Z"
     },
     {
       "iteration": 3,
@@ -771,18 +719,17 @@
             "Free-time items cost €0 and are excluded from activity spend.",
             "Activity times are suggested slots; arrival and departure times are not modeled."
           ],
-          "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities.",
+          "summary": "Day 1: Arrive in Lisbon, stay at Casa do Bairro. Day 2: Alfama walking tour in the morning, visit the National Tile Museum in the afternoon. Day 3: Departure.",
           "tips": [
-            "Enjoy the morning at the Bertrand bookshop for a cultural start.",
-            "Take a leisurely walk in the Alfama district for history and walking.",
-            "Visit the National Tile Museum in the afternoon for a history lesson.",
-            "End your day with a traditional Pastel de nata tasting."
+            "Enjoy the local vegetarian cuisine at the Time Out Market.",
+            "Take a leisurely tram ride in the morning.",
+            "Visit the Bertrand bookshop for a cultural experience."
           ]
         }
       },
       "isError": false,
-      "seq": 16,
-      "timestamp": "2026-11-26T16:13:55.736Z"
+      "seq": 14,
+      "timestamp": "2026-11-26T23:02:22.081Z"
     },
     {
       "iteration": 3,
@@ -921,16 +868,15 @@
           "Free-time items cost €0 and are excluded from activity spend.",
           "Activity times are suggested slots; arrival and departure times are not modeled."
         ],
-        "summary": "Your itinerary for Lisbon includes a budget-friendly stay, slow-paced exploration, and vegetarian-friendly activities.",
+        "summary": "Day 1: Arrive in Lisbon, stay at Casa do Bairro. Day 2: Alfama walking tour in the morning, visit the National Tile Museum in the afternoon. Day 3: Departure.",
         "tips": [
-          "Enjoy the morning at the Bertrand bookshop for a cultural start.",
-          "Take a leisurely walk in the Alfama district for history and walking.",
-          "Visit the National Tile Museum in the afternoon for a history lesson.",
-          "End your day with a traditional Pastel de nata tasting."
+          "Enjoy the local vegetarian cuisine at the Time Out Market.",
+          "Take a leisurely tram ride in the morning.",
+          "Visit the Bertrand bookshop for a cultural experience."
         ]
       },
-      "seq": 17,
-      "timestamp": "2026-11-26T16:13:55.736Z"
+      "seq": 15,
+      "timestamp": "2026-11-26T23:02:22.081Z"
     }
   ],
   "llm": {
